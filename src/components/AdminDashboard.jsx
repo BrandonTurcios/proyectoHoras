@@ -1,4 +1,3 @@
-// src/components/AdminDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -7,47 +6,81 @@ import {
   ClipboardList, 
   BarChart2, 
   Calendar,
-  Plus,
   Search,
-  Filter
+  ChevronDown, 
+  LogOut, 
+  User
 } from 'lucide-react';
+import TasksManager from './TasksManager';
+import Statistics from './Statistics';
+import StudentSchedule from './StudentSchedule';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('students');
   const [students, setStudents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { userData } = useAuth();
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const { userData, signOut } = useAuth();
+
 
   useEffect(() => {
     if (userData?.internship_area) {
-      fetchStudents();
-      fetchTasks();
+      const fetchData = async () => {
+        setLoading(true);
+        await Promise.all([fetchStudents(), fetchTasks()]);
+        setLoading(false);
+      };
+      fetchData();
     }
   }, [userData]);
 
   const fetchStudents = async () => {
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('role', 'student')
-      .eq('internship_area', userData.internship_area);
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'student')
+        .eq('internship_area', userData.internship_area);
 
-    if (data) setStudents(data);
-    setLoading(false);
+      if (error) throw error;
+      if (data) setStudents(data);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    }
   };
 
   const fetchTasks = async () => {
-    const { data, error } = await supabase
-      .from('tasks')
-      .select(`
-        *,
-        student:users(full_name),
-        evidences(*)
-      `)
-      .eq('admin_id', userData.id);
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          admin:users!tasks_admin_id_fkey(full_name),
+          student:users!tasks_student_id_fkey(full_name),
+          evidences(*)
+        `)
+        .eq('admin_id', userData.id);
 
-    if (data) setTasks(data);
+      if (error) throw error;
+      if (data) setTasks(data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    }
+  };
+  const handleSignOut = async () => {
+    setLogoutLoading(true);
+    try {
+      // Usamos el signOut del contexto que ahora maneja todo
+      await signOut();
+      // No necesitamos hacer nada más aquí
+    } catch (error) {
+      console.error('Error durante logout:', error);
+      // Mostrar mensaje de error al usuario si es necesario
+    } finally {
+      setLogoutLoading(false);
+    }
   };
 
   const renderContent = () => {
@@ -59,7 +92,7 @@ const AdminDashboard = () => {
       case 'statistics':
         return <Statistics students={students} tasks={tasks} />;
       case 'schedule':
-        return <Schedule students={students} tasks={tasks} />;
+        return <StudentSchedule students={students} tasks={tasks} />;
       default:
         return null;
     }
@@ -68,12 +101,13 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="fixed w-64 h-full bg-white shadow-lg">
+      <div className="fixed w-64 h-full bg-white shadow-lg flex flex-col">
         <div className="p-6">
           <h2 className="text-xl font-bold text-gray-800">Panel de Control</h2>
           <p className="text-sm text-gray-600">{userData?.internship_area}</p>
         </div>
-        <nav className="mt-6">
+        
+        <nav className="mt-6 flex-1">
           <button
             onClick={() => setActiveTab('students')}
             className={`w-full flex items-center p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
@@ -111,6 +145,63 @@ const AdminDashboard = () => {
             Horarios
           </button>
         </nav>
+
+        {/* Menú de usuario */}
+        <div className="p-4 border-t">
+          <div className="relative">
+            <button
+              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <div className="flex items-center">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                  <User className="w-4 h-4 text-indigo-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium truncate max-w-[120px]">
+                    {userData?.full_name || 'Administrador'}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate max-w-[120px]">
+                    {userData?.email || ''}
+                  </p>
+                </div>
+              </div>
+              <ChevronDown 
+                className={`w-4 h-4 transition-transform ${isUserMenuOpen ? 'transform rotate-180' : ''}`} 
+              />
+            </button>
+            
+            {isUserMenuOpen && (
+              <div 
+                className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-lg shadow-lg py-1 z-10 border border-gray-200"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={handleSignOut}
+                  disabled={logoutLoading}
+                  className={`w-full flex items-center px-4 py-2 text-sm ${
+                    logoutLoading ? 'text-gray-400' : 'text-red-600 hover:bg-red-50'
+                  }`}
+                >
+                  {logoutLoading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Cerrando sesión...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Cerrar sesión
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
@@ -134,8 +225,7 @@ const StudentsList = ({ students }) => {
 
   const filteredStudents = students
     .filter(student => 
-      student.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+      student.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
       if (sortBy === 'name') {
         return a.full_name.localeCompare(b.full_name);

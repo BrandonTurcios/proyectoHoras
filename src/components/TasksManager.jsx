@@ -1,5 +1,7 @@
 // src/components/TasksManager.jsx
 import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext'; // o donde tengas tu AuthContext
+
 import { supabase } from '../lib/supabase';
 import { 
   Plus, 
@@ -18,6 +20,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
   const [showEvidenceModal, setShowEvidenceModal] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, submitted, approved
   const [selectedSpace, setSelectedSpace] = useState('all'); // all, labs, general
+  const { userData } = useAuth();
 
   const spaces = [
     { id: 'all', name: 'Todos los espacios' },
@@ -32,16 +35,25 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
   });
 
   const handleCreateTask = async (taskData) => {
+    const completeTaskData = {
+      ...taskData,
+      admin_id: userData.id,
+    };
+  
     const { data, error } = await supabase
       .from('tasks')
-      .insert([taskData])
+      .insert([completeTaskData])
       .select();
-
-    if (!error) {
-      onTaskUpdate();
-      setShowNewTaskModal(false);
+  
+    if (error) {
+      console.error("Error al crear tarea:", error);
+      return;
     }
+  
+    onTaskUpdate();
+    setShowNewTaskModal(false);
   };
+  
 
   const handleApproveEvidence = async (taskId, evidenceId, hoursSpent) => {
     const { data: task, error: taskError } = await supabase

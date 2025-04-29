@@ -97,11 +97,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   const signOut = async () => {
+    setLoading(true);
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // 1. Limpiar el token del lado del cliente
+      await supabase.auth.signOut();
+      
+      // 2. Eliminar cualquier token residual
+      localStorage.removeItem('sb-auth-token');
+      sessionStorage.removeItem('sb-auth-token');
+      
+      // 3. Limpiar estados
+      setUser(null);
+      setUserData(null);
+      
+      // 4. Forzar limpieza de caché del navegador
+      window.location.href = '/login?logout=true';
+      
+      // 5. Opcional: Limpiar cookies relacionadas
+      document.cookie = 'sb-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
     } catch (error) {
-      console.error('Error signing out:', error.message);
+      console.error('Error durante logout:', error);
+      // Fallback seguro
+      window.location.href = '/login?error=logout_failed';
     }
   };
 
