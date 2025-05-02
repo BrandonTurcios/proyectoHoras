@@ -1,8 +1,10 @@
-// src/context/AuthContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+// src/contexts/AuthContext.jsx
+import React, { useContext, useState, useEffect, createContext } from 'react';
 import { supabase } from '../lib/supabase';
 
-const AuthContext = createContext({});
+const AuthContext = createContext();
+
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -11,115 +13,130 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Verifica la sesión actual
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+      if (session?.user) {
         setUser(session.user);
-        fetchUserData(session.user.id);
+        fetchUserData(session.user);
       }
       setLoading(false);
     });
 
-    // Escucha cambios en la autenticación
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session) {
+        if (event === 'SIGNED_IN') {
           setUser(session.user);
-          await fetchUserData(session.user.id);
-        } else {
+          fetchUserData(session.user);
+        } else if (event === 'SIGNED_OUT') {
           setUser(null);
           setUserData(null);
         }
-        setLoading(false);
       }
     );
 
     return () => {
-      subscription.unsubscribe();
+      listener.subscription.unsubscribe();
     };
   }, []);
 
-  const fetchUserData = async (userId) => {
+  const fetchUserData = async (userObj) => {
     try {
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', userId)
-        .single();
+        .eq('id', userObj.id);
 
       if (error) throw error;
-      setUserData(data);
+
+      if (data.length === 0) {
+        // Insertar nuevo usuario si no existe aún
+        const { error: insertError } = await supabase.from('users').upsert([
+          {
+            id: userObj.id,
+            email: userObj.email,
+            full_name: userObj.user_metadata?.full_name || '',
+            role: userObj.user_metadata?.role || 'student',
+            internship_area: userObj.user_metadata?.internship_area || '',
+            hours_required: userObj.user_metadata?.hours_required || 0,
+            current_hours: 0,
+          }
+        ], { onConflict: 'id' }); // <- evita duplicados
+        
+
+        if (insertError) throw insertError;
+
+        setUserData({
+          id: userObj.id,
+          email: userObj.email,
+          full_name: userObj.user_metadata?.full_name || '',
+          role: userObj.user_metadata?.role || 'student',
+          internship_area: userObj.user_metadata?.internship_area || '',
+          hours_required: userObj.user_metadata?.hours_required || 0,
+          current_hours: 0,
+        });
+      } else {
+        setUserData(data[0]);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       setError(error.message);
+      setUser(null);
+      setUserData(null);
+      await supabase.auth.signOut();
+    }
+  };
+
+  const signUp = async (email, password, profile) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: profile.full_name,
+            role: profile.role,
+            internship_area: profile.internship_area,
+            hours_required: profile.hours_required
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      return { data, error: null };
+    } catch (error) {
+      console.error('Sign up error:', error);
+      return { data: null, error: error.message };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email, password) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
-        password,
-      });
-      if (error) throw error;
-      return { data, error: null };
-    } catch (error) {
-      return { data: null, error: error.message };
-    }
-  };
-
-  const signUp = async (email, password, userData) => {
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
+        password
       });
 
-      if (authError) throw authError;
-
-      // Crear el perfil del usuario en la tabla users
-      const { data, error } = await supabase
-        .from('users')
-        .insert([
-          {
-            id: authData.user.id,
-            email,
-            ...userData,
-          },
-        ])
-        .single();
-
       if (error) throw error;
+
       return { data, error: null };
     } catch (error) {
+      console.error('Sign in error:', error);
       return { data: null, error: error.message };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     setLoading(true);
-    try {
-      // 1. Limpiar el token del lado del cliente
-      await supabase.auth.signOut();
-      
-      // 2. Eliminar cualquier token residual
-      localStorage.removeItem('sb-auth-token');
-      sessionStorage.removeItem('sb-auth-token');
-      
-      // 3. Limpiar estados
-      setUser(null);
-      setUserData(null);
-      
-      // 4. Forzar limpieza de caché del navegador
-      window.location.href = '/login?logout=true';
-      
-      // 5. Opcional: Limpiar cookies relacionadas
-      document.cookie = 'sb-auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    } catch (error) {
-      console.error('Error durante logout:', error);
-      // Fallback seguro
-      window.location.href = '/login?error=logout_failed';
-    }
+    await supabase.auth.signOut();
+    setUser(null);
+    setUserData(null);
+    setLoading(false);
   };
 
   const value = {
@@ -127,18 +144,10 @@ export const AuthProvider = ({ children }) => {
     userData,
     loading,
     error,
-    signIn,
     signUp,
-    signOut,
+    signIn,
+    signOut
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

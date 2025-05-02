@@ -1,15 +1,9 @@
 // src/components/StudentSchedule.jsx
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { 
-  ChevronLeft, 
-  ChevronRight,
-  Clock,
-  Plus,
-  Trash2
-} from 'lucide-react';
+import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
 
-const StudentSchedule = ({ studentId, onClose }) => {
+const StudentSchedule = ({ studentId, onClose, readOnly = false }) => {
   const [schedule, setSchedule] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -17,11 +11,6 @@ const StudentSchedule = ({ studentId, onClose }) => {
   const daysOfWeek = [
     'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'
   ];
-
-  const timeSlots = Array.from({ length: 14 }, (_, i) => {
-    const hour = i + 7; // Empezando desde las 7:00
-    return `${hour.toString().padStart(2, '0')}:00`;
-  });
 
   useEffect(() => {
     fetchSchedule();
@@ -44,7 +33,7 @@ const StudentSchedule = ({ studentId, onClose }) => {
 
   const handleAddTimeSlot = async (dayOfWeek, startTime, endTime) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('student_availability')
         .insert([
           {
@@ -95,19 +84,23 @@ const StudentSchedule = ({ studentId, onClose }) => {
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-semibold">Mi Horario</h2>
           <div className="flex space-x-4">
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700"
-            >
-              <Plus className="w-5 h-5" />
-              <span>Agregar Disponibilidad</span>
-            </button>
-            <button
-              onClick={onClose}
-              className="text-gray-600 hover:text-gray-700"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => setShowAddForm(true)}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700"
+              >
+                <Plus className="w-5 h-5" />
+                <span>Agregar Disponibilidad</span>
+              </button>
+            )}
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="text-gray-600 hover:text-gray-700"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -125,12 +118,14 @@ const StudentSchedule = ({ studentId, onClose }) => {
                       <div className="text-sm text-indigo-700">
                         {slot.start_time} - {slot.end_time}
                       </div>
-                      <button
-                        onClick={() => handleDeleteTimeSlot(slot.id)}
-                        className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {!readOnly && (
+                        <button
+                          onClick={() => handleDeleteTimeSlot(slot.id)}
+                          className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -140,8 +135,7 @@ const StudentSchedule = ({ studentId, onClose }) => {
         </div>
       </div>
 
-      {/* Form Modal */}
-      {showAddForm && (
+      {!readOnly && showAddForm && (
         <AddTimeSlotForm
           onSubmit={handleAddTimeSlot}
           onClose={() => setShowAddForm(false)}

@@ -22,8 +22,10 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
-  const { userData, signOut } = useAuth();
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const { userData, signOut } = useAuth();
 
   useEffect(() => {
     if (userData?.internship_area) {
@@ -35,6 +37,17 @@ const AdminDashboard = () => {
       fetchData();
     }
   }, [userData]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 640) { // sm breakpoint
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchStudents = async () => {
     try {
@@ -92,73 +105,144 @@ const AdminDashboard = () => {
       case 'statistics':
         return <Statistics students={students} tasks={tasks} />;
       case 'schedule':
-        return <StudentSchedule students={students} tasks={tasks} />;
+        return selectedStudentId ? (
+          <div>
+            <button
+              onClick={() => setSelectedStudentId(null)}
+              className="mb-4 text-indigo-600 hover:underline"
+            >
+              ← Volver a la lista de estudiantes
+            </button>
+            <StudentSchedule
+              studentId={selectedStudentId}
+              readOnly={true}
+            />
+          </div>
+        ) : (
+          <StudentsList
+            students={students}
+            onSelectStudent={(id) => setSelectedStudentId(id)}
+            showScheduleOption={true}
+          />
+        );
       default:
         return null;
     }
   };
+  
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-white shadow-lg sm:hidden"
+      >
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          {isSidebarOpen ? (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          ) : (
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
+          )}
+        </svg>
+      </button>
+
+      {/* Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="fixed w-64 h-full bg-white shadow-lg flex flex-col">
-        <div className="p-6">
-          <h2 className="text-xl font-bold text-gray-800">Panel de Control</h2>
-          <p className="text-sm text-gray-600">{userData?.internship_area}</p>
+      <div className={`fixed w-64 h-full bg-white shadow-lg flex flex-col transition-all duration-300 z-40 ${
+        isSidebarOpen ? 'left-0' : '-left-64 sm:left-0'
+      }`}>
+        <div className="p-2 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Panel de Control</h2>
+          <p className="text-xs sm:text-sm text-gray-600">{userData?.internship_area}</p>
         </div>
         
-        <nav className="mt-6 flex-1">
+        <nav className="mt-4 sm:mt-6 flex-1">
           <button
-            onClick={() => setActiveTab('students')}
-            className={`w-full flex items-center p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+            onClick={() => {
+              setActiveTab('students');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
               activeTab === 'students' ? 'bg-indigo-50 text-indigo-600' : ''
             }`}
           >
             <Users className="w-5 h-5 mr-3" />
-            Estudiantes
+            <span>Estudiantes</span>
           </button>
           <button
-            onClick={() => setActiveTab('tasks')}
-            className={`w-full flex items-center p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+            onClick={() => {
+              setActiveTab('tasks');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
               activeTab === 'tasks' ? 'bg-indigo-50 text-indigo-600' : ''
             }`}
           >
             <ClipboardList className="w-5 h-5 mr-3" />
-            Tareas
+            <span>Tareas</span>
           </button>
           <button
-            onClick={() => setActiveTab('statistics')}
-            className={`w-full flex items-center p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+            onClick={() => {
+              setActiveTab('statistics');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
               activeTab === 'statistics' ? 'bg-indigo-50 text-indigo-600' : ''
             }`}
           >
             <BarChart2 className="w-5 h-5 mr-3" />
-            Estadísticas
+            <span>Estadísticas</span>
           </button>
           <button
-            onClick={() => setActiveTab('schedule')}
-            className={`w-full flex items-center p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+            onClick={() => {
+              setActiveTab('schedule');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
               activeTab === 'schedule' ? 'bg-indigo-50 text-indigo-600' : ''
             }`}
           >
             <Calendar className="w-5 h-5 mr-3" />
-            Horarios
+            <span>Horarios</span>
           </button>
         </nav>
 
         {/* Menú de usuario */}
-        <div className="p-4 border-t">
+        <div className="p-2 sm:p-4 border-t">
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="w-full flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors"
+              className="w-full flex items-center justify-between p-2 sm:p-3 hover:bg-gray-50 rounded-lg transition-colors"
             >
               <div className="flex items-center">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
-                  <User className="w-4 h-4 text-indigo-600" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600" />
                 </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium truncate max-w-[120px]">
+                <div className="text-left ml-3">
+                  <p className="text-xs sm:text-sm font-medium truncate max-w-[120px]">
                     {userData?.full_name || 'Administrador'}
                   </p>
                   <p className="text-xs text-gray-500 truncate max-w-[120px]">
@@ -179,13 +263,13 @@ const AdminDashboard = () => {
                 <button
                   onClick={handleSignOut}
                   disabled={logoutLoading}
-                  className={`w-full flex items-center px-4 py-2 text-sm ${
+                  className={`w-full flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm ${
                     logoutLoading ? 'text-gray-400' : 'text-red-600 hover:bg-red-50'
                   }`}
                 >
                   {logoutLoading ? (
                     <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin -ml-1 mr-2 h-3 w-3 sm:h-4 sm:w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -193,7 +277,7 @@ const AdminDashboard = () => {
                     </>
                   ) : (
                     <>
-                      <LogOut className="w-4 h-4 mr-2" />
+                      <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Cerrar sesión
                     </>
                   )}
@@ -205,10 +289,10 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="ml-64 p-8">
+      <div className="ml-0 sm:ml-64 p-4 sm:p-6 md:p-8 transition-all duration-300">
         {loading ? (
           <div className="flex items-center justify-center h-screen">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-indigo-600"></div>
           </div>
         ) : (
           renderContent()
@@ -219,7 +303,7 @@ const AdminDashboard = () => {
 };
 
 // Componente de lista de estudiantes
-const StudentsList = ({ students }) => {
+const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
@@ -235,59 +319,44 @@ const StudentsList = ({ students }) => {
       return 0;
     });
 
-  return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Estudiantes</h2>
-        <div className="flex space-x-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Buscar estudiante..."
-              className="pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <select
-            className="border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="name">Ordenar por nombre</option>
-            <option value="hours">Ordenar por horas</option>
-          </select>
+    return (
+      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          {filteredStudents.map(student => (
+            <div key={student.id} className="border rounded-lg p-4 sm:p-6 hover:shadow-lg transition-shadow">
+              <h3 className="font-semibold text-base sm:text-lg mb-2">{student.full_name}</h3>
+              <p className="text-gray-600 text-sm sm:text-base mb-2">{student.email}</p>
+              <div className="mt-3 sm:mt-4">
+                <div className="flex justify-between mb-1">
+                  <span className="text-xs sm:text-sm font-medium">Progreso de horas</span>
+                  <span className="text-xs sm:text-sm font-medium">
+                    {Math.round((student.current_hours / student.hours_required) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                  <div
+                    className="bg-indigo-600 h-1.5 sm:h-2 rounded-full"
+                    style={{ width: `${(student.current_hours / student.hours_required) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600">
+                  {student.current_hours} de {student.hours_required} horas completadas
+                </div>
+              </div>
+  
+              {showScheduleOption && (
+                <button
+                  className="mt-3 sm:mt-4 w-full bg-indigo-600 text-white py-1.5 sm:py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base"
+                  onClick={() => onSelectStudent(student.id)}
+                >
+                  Ver horario
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredStudents.map(student => (
-          <div key={student.id} className="border rounded-lg p-6 hover:shadow-lg transition-shadow">
-            <h3 className="font-semibold text-lg mb-2">{student.full_name}</h3>
-            <p className="text-gray-600 mb-2">{student.email}</p>
-            <div className="mt-4">
-              <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium">Progreso de horas</span>
-                <span className="text-sm font-medium">
-                  {Math.round((student.current_hours / student.hours_required) * 100)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-indigo-600 h-2 rounded-full"
-                  style={{ width: `${(student.current_hours / student.hours_required) * 100}%` }}
-                ></div>
-              </div>
-              <div className="mt-2 text-sm text-gray-600">
-                {student.current_hours} de {student.hours_required} horas completadas
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+    );
+  };
 
 export default AdminDashboard;

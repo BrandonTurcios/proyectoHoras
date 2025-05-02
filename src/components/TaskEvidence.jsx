@@ -45,56 +45,96 @@ const TaskEvidence = ({ task, onClose }) => {
     setError(null);
 
     try {
-      // Subir imágenes
-      const imageUrls = await Promise.all(
-        images.map(async (image) => {
-          const fileName = `${Date.now()}-${image.name}`;
-          const { data, error } = await supabase.storage
-            .from('task-evidences')
-            .upload(fileName, image);
+      // Convert images to base64
+      const imageBase64Promises = images.map(image => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(image);
+        });
+      });
 
-          if (error) {
-            console.error("Error al subir la imagen:", error); // Detalles del error en la carga de la imagen
-            throw error;
-          }
+      const imageBase64s = await Promise.all(imageBase64Promises);
 
-          const { data: { publicUrl }, error: urlError } = supabase.storage
-            .from('task-evidences')
-            .getPublicUrl(fileName);
+      // Get student name from database
+      let studentName = 'Sin asignar';
+      if (task.student_id) {
+        const { data: studentData, error: studentError } = await supabase
+          .from('users')
+          .select('full_name')
+          .eq('id', task.student_id)
+          .single();
 
-          if (urlError) {
-            console.error("Error al obtener URL pública:", urlError); // Detalles del error al obtener la URL
-            throw urlError;
-          }
+        if (!studentError && studentData) {
+          studentName = studentData.full_name;
+        }
+      }
 
-          return publicUrl;
+      // Prepare the evidence data
+      const evidenceData = {
+        task_id: task.id,
+        task_title: task.title,
+        task_description: task.description,
+        evidence_description: description,
+        hours_spent: hoursSpent,
+        images: imageBase64s,
+        student_name: studentName,
+        due_date: task.due_date,
+        student_id: task.student_id
+      };
+
+      console.log('Task data:', task); // Para debug
+      console.log('Evidence data:', evidenceData); // Para debug
+
+      // Send the data to your Power Automate endpoint
+      const response = await fetch('https://prod-148.westus.logic.azure.com:443/workflows/208cb434a6f149c0a7876ca39bd47d3a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Itcc8LBKesxQFeqFwYRjsGDNuocdP4gCKmv66nyyNTU', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(evidenceData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server response:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Error al enviar la evidencia: ${response.status} ${response.statusText}`);
+      }
+
+      let result;
+      try {
+        result = await response.json();
+      } catch (e) {
+        console.error('Error parsing response:', e);
+        throw new Error('Error al procesar la respuesta del servidor');
+      }
+
+      if (!result.pdfUrl) {
+        console.error('Invalid response format:', result);
+        throw new Error('La respuesta del servidor no contiene la URL del PDF');
+      }
+      
+      // Update task status with the PDF link
+      const { error } = await supabase
+        .from('tasks')
+        .update({ 
+          status: 'submitted',
+          evidence_pdf_url: result.pdfUrl // Store the PDF URL returned from Power Automate
         })
-      );
-
-      // Crear registro de evidencia
-      const { data, error } = await supabase
-        .from('evidences')
-        .insert([{
-          task_id: task.id,
-          description,
-          hours_spent: hoursSpent,
-          images: imageUrls
-        }]);
+        .eq('id', task.id);
 
       if (error) {
-        console.error("Error al insertar la evidencia:", error); // Detalles de error al insertar
         throw error;
       }
 
-      // Actualizar estado de la tarea
-      await supabase
-        .from('tasks')
-        .update({ status: 'submitted' })
-        .eq('id', task.id);
-
       onClose();
     } catch (error) {
-      setError('Error al subir la evidencia. Por favor, intente nuevamente.');
+      setError('Error al enviar la evidencia. Por favor, intente nuevamente.');
       console.error('Error:', error);
     } finally {
       setUploading(false);

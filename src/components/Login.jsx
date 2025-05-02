@@ -20,16 +20,27 @@ const Login = () => {
     hoursRequired: 120
   });
   // En tu componente de Login
-useEffect(() => {
-  const checkLogout = async () => {
-    const queryParams = new URLSearchParams(window.location.search);
-    if (queryParams.get('logout') === 'true') {
-      // Limpieza adicional al llegar a login desde logout
-      await supabase.auth.signOut();
-    }
-  };
-  checkLogout();
-}, []);
+  useEffect(() => {
+    const handleLogoutRedirect = async () => {
+      const params = new URLSearchParams(window.location.search);
+      
+      if (params.get('logout') === 'true') {
+        try {
+          // Forzar limpieza de sesión
+          await supabase.auth.signOut();
+          localStorage.clear();
+          sessionStorage.clear();
+          
+          // Limpiar la URL
+          window.history.replaceState({}, document.title, '/login');
+        } catch (error) {
+          console.error('Error cleaning up session:', error);
+        }
+      }
+    };
+  
+    handleLogoutRedirect();
+  }, []);
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
