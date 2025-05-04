@@ -1,6 +1,6 @@
 // src/components/TasksManager.jsx
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext'; // o donde tengas tu AuthContext
+import { useAuth } from '../context/AuthContext';
 
 import { supabase } from '../lib/supabase';
 import { 
@@ -21,6 +21,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
   const [showEvidenceModal, setShowEvidenceModal] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, submitted, approved
   const [selectedSpace, setSelectedSpace] = useState('all'); // all, labs, general
+  const [selectedStudent, setSelectedStudent] = useState('all'); // all or student id
   const { userData } = useAuth();
 
   const spaces = [
@@ -32,6 +33,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
   const filteredTasks = tasks.filter(task => {
     if (filter !== 'all' && task.status !== filter) return false;
     if (selectedSpace !== 'all' && task.space !== selectedSpace) return false;
+    if (selectedStudent !== 'all' && task.student_id !== selectedStudent) return false;
     return true;
   });
 
@@ -120,6 +122,18 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
               </option>
             ))}
           </select>
+          <select
+            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto"
+            value={selectedStudent}
+            onChange={(e) => setSelectedStudent(e.target.value)}
+          >
+            <option value="all">Todos los estudiantes</option>
+            {students.map(student => (
+              <option key={student.id} value={student.id}>
+                {student.full_name}
+              </option>
+            ))}
+          </select>
         </div>
         <button
           onClick={() => setShowNewTaskModal(true)}
@@ -131,40 +145,57 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
       </div>
 
       {/* Tasks Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTasks.map(task => (
-          <div key={task.id} className="bg-white rounded-lg shadow p-4 sm:p-6">
-            <div className="flex justify-between items-start mb-3 sm:mb-4">
-              <h3 className="font-semibold text-base sm:text-lg">{task.title}</h3>
-              <span className={`px-2 py-1 rounded-full text-xs sm:text-sm ${
-                task.status === 'approved' ? 'bg-green-100 text-green-800' :
-                task.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
-                'bg-yellow-100 text-yellow-800'
-              }`}>
+          <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
+            <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
+              <div className="relative group flex-1 min-w-0">
+                <h3 className="font-bold text-lg sm:text-xl text-indigo-800 break-words flex-1 min-w-0 truncate cursor-pointer" title={task.title}>
+                  {task.title}
+                </h3>
+                {/* Tooltip visual solo en desktop */}
+                <span className="hidden group-hover:flex absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words"
+                  style={{ pointerEvents: 'none' }}>
+                  {task.title}
+                </span>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
+                task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white animate-pulse' :
+                task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
+                'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900'
+              }`} title={
+                task.status === 'approved' ? 'Aprobada' :
+                task.status === 'submitted' ? 'Enviada' : 'Pendiente'
+              }>
                 {task.status === 'approved' ? 'Aprobada' :
                  task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
               </span>
             </div>
-            <p className="text-gray-600 text-sm sm:text-base mb-3 sm:mb-4">{task.description}</p>
-            <div className="space-y-2 text-xs sm:text-sm text-gray-500">
+            <p className="text-gray-700 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
+            <div className="space-y-2 text-xs sm:text-sm text-indigo-700 mt-auto">
               <div className="flex items-center">
-                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                <span>Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
+                <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400" />
+                <span className="break-words">Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center">
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                <span>{task.required_hours} horas requeridas</span>
+                <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400" />
+                <span className="break-words">{task.required_hours} horas requeridas</span>
               </div>
               <div className="flex items-center">
-                <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                <span>Asignado a: {task.student?.full_name || 'Sin asignar'}</span>
+                <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400" />
+                <span className="break-words">
+                  Asignado a: <span className="font-bold text-indigo-700">{task.student?.full_name || 'Sin asignar'}</span>
+                </span>
               </div>
             </div>
-            
-            {task.status === 'submitted' && (
+            {(task.status === 'submitted' || task.status === 'approved') && (
               <button
                 onClick={() => setShowEvidenceModal(task)}
-                className="mt-3 sm:mt-4 w-full bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm sm:text-base"
+                className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
+                  task.status === 'approved' 
+                    ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
+                    : 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800'
+                }`}
               >
                 Ver Evidencia
               </button>
@@ -216,26 +247,28 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
                   Ver PDF
                 </a>
               )}
-              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-6">
-                <button
-                  onClick={() => handleRejectEvidence(showEvidenceModal.id)}
-                  className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 w-full sm:w-auto text-sm sm:text-base"
-                >
-                  <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                  Rechazar
-                </button>
-                <button
-                  onClick={() => handleApproveEvidence(
-                    showEvidenceModal.id,
-                    showEvidenceModal.evidences?.[0]?.id,
-                    showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours
-                  )}
-                  className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
-                >
-                  <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                  Aprobar
-                </button>
-              </div>
+              {showEvidenceModal.status !== 'approved' && (
+                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-6">
+                  <button
+                    onClick={() => handleRejectEvidence(showEvidenceModal.id)}
+                    className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 w-full sm:w-auto text-sm sm:text-base"
+                  >
+                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                    Rechazar
+                  </button>
+                  <button
+                    onClick={() => handleApproveEvidence(
+                      showEvidenceModal.id,
+                      showEvidenceModal.evidences?.[0]?.id,
+                      showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours
+                    )}
+                    className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
+                  >
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                    Aprobar
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

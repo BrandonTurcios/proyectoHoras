@@ -19,6 +19,18 @@ const Login = () => {
     internshipArea: '',
     hoursRequired: 120
   });
+
+  // Detectar el rol automáticamente según el correo
+  useEffect(() => {
+    if (!isLogin && formData.email) {
+      if (formData.email.trim().endsWith('.hn')) {
+        setFormData(prev => ({ ...prev, role: 'admin' }));
+      } else {
+        setFormData(prev => ({ ...prev, role: 'student' }));
+      }
+    }
+  }, [formData.email, isLogin]);
+
   // En tu componente de Login
   useEffect(() => {
     const handleLogoutRedirect = async () => {
@@ -79,20 +91,20 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-indigo-200 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white/90 p-8 rounded-2xl shadow-2xl">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-indigo-700 drop-shadow-sm">
             {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-base text-indigo-500">
             {isLogin ? '¿No tienes una cuenta? ' : '¿Ya tienes una cuenta? '}
             <button
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError(null);
               }}
-              className="font-medium text-indigo-600 hover:text-indigo-500"
+              className="font-bold text-indigo-600 hover:text-indigo-700 underline underline-offset-2 transition-colors"
             >
               {isLogin ? 'Regístrate' : 'Inicia sesión'}
             </button>
@@ -106,9 +118,9 @@ const Login = () => {
         )}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
+          <div className="rounded-xl shadow-sm space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-bold text-indigo-700">
                 Correo Institucional
               </label>
               <div className="mt-1 relative">
@@ -117,7 +129,7 @@ const Login = () => {
                   name="email"
                   type="email"
                   required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full px-3 py-2 border border-indigo-200 placeholder-indigo-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="correo@unitec.edu"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -127,7 +139,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-bold text-indigo-700">
                 Contraseña
               </label>
               <div className="mt-1 relative">
@@ -136,7 +148,7 @@ const Login = () => {
                   name="password"
                   type="password"
                   required
-                  className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full px-3 py-2 border border-indigo-200 placeholder-indigo-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -148,7 +160,7 @@ const Login = () => {
             {!isLogin && (
               <>
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="confirmPassword" className="block text-sm font-bold text-indigo-700">
                     Confirmar Contraseña
                   </label>
                   <div className="mt-1 relative">
@@ -157,7 +169,7 @@ const Login = () => {
                       name="confirmPassword"
                       type="password"
                       required
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none relative block w-full px-3 py-2 border border-indigo-200 placeholder-indigo-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 focus:z-10 sm:text-sm"
                       placeholder="••••••••"
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
@@ -167,7 +179,7 @@ const Login = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="fullName" className="block text-sm font-bold text-indigo-700">
                     Nombre Completo
                   </label>
                   <div className="mt-1">
@@ -176,7 +188,7 @@ const Login = () => {
                       name="fullName"
                       type="text"
                       required
-                      className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      className="appearance-none relative block w-full px-3 py-2 border border-indigo-200 placeholder-indigo-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 focus:z-10 sm:text-sm"
                       placeholder="Juan Pérez"
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
@@ -185,31 +197,21 @@ const Login = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                    Rol
-                  </label>
-                  <select
-                    id="role"
-                    name="role"
-                    required
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg"
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  >
-                    <option value="student">Estudiante</option>
-                    <option value="admin">Administrador</option>
-                  </select>
+                  <label className="block text-sm font-bold text-indigo-700 mb-1">Rol asignado automáticamente</label>
+                  <div className="px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold">
+                    {formData.role === 'admin' ? 'Administrador' : 'Estudiante'}
+                  </div>
                 </div>
 
                 <div>
-                  <label htmlFor="internshipArea" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="internshipArea" className="block text-sm font-bold text-indigo-700">
                     Área de Pasantía
                   </label>
                   <select
                     id="internshipArea"
                     name="internshipArea"
                     required
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg"
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 sm:text-sm rounded-lg"
                     value={formData.internshipArea}
                     onChange={(e) => setFormData({ ...formData, internshipArea: e.target.value })}
                   >
@@ -223,7 +225,7 @@ const Login = () => {
 
                 {formData.role === 'student' && (
                   <div>
-                    <label htmlFor="hoursRequired" className="block text-sm font-medium text-gray-700">
+                    <label htmlFor="hoursRequired" className="block text-sm font-bold text-indigo-700">
                       Horas Requeridas
                     </label>
                     <input
@@ -232,7 +234,7 @@ const Login = () => {
                       type="number"
                       required
                       min="1"
-                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-lg"
+                      className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-500 sm:text-sm rounded-lg"
                       value={formData.hoursRequired}
                       onChange={(e) => setFormData({ ...formData, hoursRequired: parseInt(e.target.value) })}
                     />
@@ -246,22 +248,22 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading || (formData.email && !validateEmail(formData.email))}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white ${
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-base font-bold rounded-xl text-white shadow-lg transition-all duration-150 ${
                 loading || (formData.email && !validateEmail(formData.email))
-                  ? 'bg-indigo-400 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+                  ? 'bg-indigo-300 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
               }`}
             >
               <span className="absolute left-0 inset-y-0 flex items-center pl-3">
                 {isLogin ? (
-                  <LogIn className="h-5 w-5 text-indigo-300 group-hover:text-indigo-200" />
+                  <LogIn className="h-6 w-6 text-indigo-200 group-hover:text-indigo-100" />
                 ) : (
-                  <UserPlus className="h-5 w-5 text-indigo-300 group-hover:text-indigo-200" />
+                  <UserPlus className="h-6 w-6 text-indigo-200 group-hover:text-indigo-100" />
                 )}
               </span>
               {loading ? (
                 <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>

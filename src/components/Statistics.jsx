@@ -91,16 +91,16 @@ const Statistics = ({ students, tasks }) => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Filtros */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white/90 rounded-2xl shadow-xl p-4 sm:p-8">
         <div className="flex flex-wrap gap-4 items-center">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Período
             </label>
             <select
-              className="border rounded-lg px-4 py-2"
+              className="border-2 border-indigo-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-400"
               value={timeFrame}
               onChange={(e) => setTimeFrame(e.target.value)}
             >
@@ -114,7 +114,7 @@ const Statistics = ({ students, tasks }) => {
               Área
             </label>
             <select
-              className="border rounded-lg px-4 py-2"
+              className="border-2 border-indigo-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-400"
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
             >
@@ -129,7 +129,7 @@ const Statistics = ({ students, tasks }) => {
 
       {/* Tarjetas de resumen */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/90 rounded-2xl shadow-xl p-6 flex items-center">
           <div className="flex items-center">
             <Users className="w-10 h-10 text-indigo-600" />
             <div className="ml-4">
@@ -140,7 +140,7 @@ const Statistics = ({ students, tasks }) => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/90 rounded-2xl shadow-xl p-6 flex items-center">
           <div className="flex items-center">
             <Clock className="w-10 h-10 text-green-600" />
             <div className="ml-4">
@@ -151,7 +151,7 @@ const Statistics = ({ students, tasks }) => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/90 rounded-2xl shadow-xl p-6 flex items-center">
           <div className="flex items-center">
             <CheckCircle className="w-10 h-10 text-blue-600" />
             <div className="ml-4">
@@ -162,7 +162,7 @@ const Statistics = ({ students, tasks }) => {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/90 rounded-2xl shadow-xl p-6 flex items-center">
           <div className="flex items-center">
             <Calendar className="w-10 h-10 text-yellow-600" />
             <div className="ml-4">
@@ -178,8 +178,8 @@ const Statistics = ({ students, tasks }) => {
       {/* Gráficos */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de barras de progreso individual */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Progreso Individual</h3>
+        <div className="bg-white/90 rounded-2xl shadow-xl p-6">
+          <h3 className="text-lg font-bold text-indigo-800 mb-4">Progreso Individual</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
@@ -199,8 +199,8 @@ const Statistics = ({ students, tasks }) => {
         </div>
 
         {/* Gráfico circular de categorías de progreso */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">Distribución de Progreso</h3>
+        <div className="bg-white/90 rounded-2xl shadow-xl p-6">
+          <h3 className="text-lg font-bold text-indigo-800 mb-4">Distribución de Progreso</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -227,7 +227,7 @@ const Statistics = ({ students, tasks }) => {
       </div>
 
       {/* Tabla detallada */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      <div className="bg-white/90 rounded-2xl shadow-xl overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>

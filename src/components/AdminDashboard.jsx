@@ -132,11 +132,11 @@ const AdminDashboard = () => {
   
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-indigo-200">
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-white shadow-lg sm:hidden"
+        className="fixed top-4 left-4 z-50 p-2 rounded-xl bg-white shadow-lg sm:hidden border border-indigo-100"
       >
         <svg
           className="w-6 h-6"
@@ -171,12 +171,12 @@ const AdminDashboard = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed w-64 h-full bg-white shadow-lg flex flex-col transition-all duration-300 z-40 ${
+      <div className={`fixed w-64 h-full bg-white/90 shadow-2xl flex flex-col transition-all duration-300 z-40 rounded-r-3xl border-r border-indigo-100 ${
         isSidebarOpen ? 'left-0' : '-left-64 sm:left-0'
       }`}>
         <div className="p-2 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Panel de Control</h2>
-          <p className="text-xs sm:text-sm text-gray-600">{userData?.internship_area}</p>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 drop-shadow-sm">Panel de Control</h2>
+          <p className="text-xs sm:text-sm text-indigo-500">{userData?.internship_area}</p>
         </div>
         
         <nav className="mt-4 sm:mt-6 flex-1">
@@ -289,13 +289,26 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="ml-0 sm:ml-64 p-4 sm:p-6 md:p-8 transition-all duration-300">
+      <div className="ml-0 sm:ml-64 p-4 sm:p-8 md:p-12 transition-all duration-300">
         {loading ? (
           <div className="flex items-center justify-center h-screen">
             <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-indigo-600"></div>
           </div>
         ) : (
-          renderContent()
+          <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+              <h1 className="text-2xl font-extrabold text-indigo-700 drop-shadow-sm">Panel Administrativo</h1>
+              <div className="flex items-center gap-4">
+                <span className="hidden sm:inline-block text-indigo-500 font-semibold text-lg">{userData?.full_name || 'Administrador'}</span>
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                  <User className="w-6 h-6 text-indigo-600" />
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/90 rounded-2xl shadow-xl p-4 sm:p-8">
+              {renderContent()}
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -320,33 +333,34 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
     });
 
     return (
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="bg-white/90 rounded-2xl shadow-xl p-4 sm:p-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredStudents.map(student => (
-            <div key={student.id} className="border rounded-lg p-4 sm:p-6 hover:shadow-lg transition-shadow">
-              <h3 className="font-semibold text-base sm:text-lg mb-2">{student.full_name}</h3>
-              <p className="text-gray-600 text-sm sm:text-base mb-2">{student.email}</p>
+            <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
+              <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
+              <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
               <div className="mt-3 sm:mt-4">
                 <div className="flex justify-between mb-1">
-                  <span className="text-xs sm:text-sm font-medium">Progreso de horas</span>
-                  <span className="text-xs sm:text-sm font-medium">
-                    {Math.round((student.current_hours / student.hours_required) * 100)}%
+                  <span className="text-xs sm:text-sm font-medium text-indigo-700">Progreso de horas</span>
+                  <span className="text-xs sm:text-sm font-bold text-indigo-700">
+                    {Math.round(student.current_hours / student.hours_required * 100)}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
                   <div
-                    className="bg-indigo-600 h-1.5 sm:h-2 rounded-full"
-                    style={{ width: `${(student.current_hours / student.hours_required) * 100}%` }}
+                    style={{ width: `${Math.min(100, (student.current_hours / student.hours_required) * 100)}%` }}
+                    className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
+                      (student.current_hours / student.hours_required) * 100 >= 100 ? 'bg-green-500' : 'bg-indigo-400'
+                    }`}
                   ></div>
                 </div>
-                <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-600">
+                <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-indigo-700">
                   {student.current_hours} de {student.hours_required} horas completadas
                 </div>
               </div>
-  
               {showScheduleOption && (
                 <button
-                  className="mt-3 sm:mt-4 w-full bg-indigo-600 text-white py-1.5 sm:py-2 rounded-lg hover:bg-indigo-700 text-sm sm:text-base"
+                  className="mt-3 sm:mt-4 w-full bg-indigo-600 text-white py-2 rounded-xl hover:bg-indigo-700 text-sm sm:text-base font-semibold shadow"
                   onClick={() => onSelectStudent(student.id)}
                 >
                   Ver horario
