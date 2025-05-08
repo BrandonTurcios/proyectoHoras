@@ -2,7 +2,7 @@
 import React, { useState,useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, UserPlus, LogIn, CheckCircle, AlertCircle, X } from 'lucide-react';
-import { Mail, Lock, UserPlus, LogIn, CheckCircle, AlertCircle, X } from 'lucide-react';
+
 import { supabase } from '../lib/supabase'; // Ajusta la ruta según tu estructura
 import ThemeToggle from './ThemeToggle';
 
