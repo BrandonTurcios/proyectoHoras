@@ -19,6 +19,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('students');
   const [students, setStudents] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -28,12 +29,12 @@ const AdminDashboard = () => {
   const { userData, signOut } = useAuth();
 
   useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchStudents(), fetchTasks(), fetchAreas()]);
+      setLoading(false);
+    };
     if (userData?.internship_area) {
-      const fetchData = async () => {
-        setLoading(true);
-        await Promise.all([fetchStudents(), fetchTasks()]);
-        setLoading(false);
-      };
       fetchData();
     }
   }, [userData]);
@@ -82,6 +83,19 @@ const AdminDashboard = () => {
       console.error("Error fetching tasks:", error);
     }
   };
+
+  const fetchAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .select('*');
+      if (error) throw error;
+      if (data) setAreas(data);
+    } catch (error) {
+      console.error("Error fetching areas:", error);
+    }
+  };
+
   const handleSignOut = async () => {
     setLogoutLoading(true);
     try {
@@ -99,11 +113,11 @@ const AdminDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'students':
-        return <StudentsList students={students} />;
+        return <StudentsList students={students} areas={areas} />;
       case 'tasks':
-        return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} />;
+        return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} areas={areas} />;
       case 'statistics':
-        return <Statistics students={students} tasks={tasks} />;
+        return <Statistics students={students} tasks={tasks} areas={areas} />;
       case 'schedule':
         return selectedStudentId ? (
           <div>
@@ -123,6 +137,7 @@ const AdminDashboard = () => {
             students={students}
             onSelectStudent={(id) => setSelectedStudentId(id)}
             showScheduleOption={true}
+            areas={areas}
           />
         );
       default:
@@ -176,7 +191,12 @@ const AdminDashboard = () => {
       }`}>
         <div className="p-2 sm:p-6">
           <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 drop-shadow-sm">Panel de Control</h2>
-          <p className="text-xs sm:text-sm text-indigo-500">{userData?.internship_area}</p>
+          <p className="text-xs sm:text-sm text-indigo-500">
+            {(() => {
+              const areaName = areas && areas.find(a => a.id === userData?.internship_area)?.name;
+              return areaName || userData?.internship_area || 'Sin área';
+            })()}
+          </p>
         </div>
         
         <nav className="mt-4 sm:mt-6 flex-1">
@@ -316,7 +336,7 @@ const AdminDashboard = () => {
 };
 
 // Componente de lista de estudiantes
-const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
+const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
@@ -333,9 +353,10 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
     });
 
     return (
-      <div className="bg-white/90 rounded-2xl shadow-xl p-4 sm:p-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredStudents.map(student => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredStudents.map(student => {
+          const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
+          return (
             <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
               <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
               <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
@@ -357,6 +378,11 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
                 <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-indigo-700">
                   {student.current_hours} de {student.hours_required} horas completadas
                 </div>
+                {areas && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    Área: {areaName || student.internship_area || 'Sin área'}
+                  </div>
+                )}
               </div>
               {showScheduleOption && (
                 <button
@@ -367,8 +393,8 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
                 </button>
               )}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     );
   };

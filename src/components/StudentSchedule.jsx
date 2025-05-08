@@ -72,40 +72,20 @@ const StudentSchedule = ({ studentId, onClose, readOnly = false }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[300px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Mi Horario</h2>
-          <div className="flex space-x-4">
-            {!readOnly && (
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700"
-              >
-                <Plus className="w-5 h-5" />
-                <span>Agregar Disponibilidad</span>
-              </button>
-            )}
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="text-gray-600 hover:text-gray-700"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="grid grid-cols-7 gap-4">
+    <div className="bg-white rounded-2xl shadow-xl p-0 sm:p-0">
+      <div className="p-6 border-b border-gray-200 flex items-center">
+        <h2 className="text-xl font-semibold text-indigo-800">Mi Horario</h2>
+      </div>
+      <div className="p-6">
+        <div className="mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
             {daysOfWeek.map(day => (
               <div key={day} className="text-center">
                 <h3 className="font-medium text-gray-900 mb-4">{day}</h3>
@@ -133,15 +113,25 @@ const StudentSchedule = ({ studentId, onClose, readOnly = false }) => {
             ))}
           </div>
         </div>
+        {!readOnly && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Agregar Disponibilidad</span>
+            </button>
+          </div>
+        )}
+        {!readOnly && showAddForm && (
+          <AddTimeSlotForm
+            onSubmit={handleAddTimeSlot}
+            onClose={() => setShowAddForm(false)}
+            daysOfWeek={daysOfWeek}
+          />
+        )}
       </div>
-
-      {!readOnly && showAddForm && (
-        <AddTimeSlotForm
-          onSubmit={handleAddTimeSlot}
-          onClose={() => setShowAddForm(false)}
-          daysOfWeek={daysOfWeek}
-        />
-      )}
     </div>
   );
 };
@@ -159,7 +149,7 @@ const AddTimeSlotForm = ({ onSubmit, onClose, daysOfWeek }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full">
         <h3 className="text-lg font-medium mb-4">Agregar Disponibilidad</h3>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -73,15 +73,14 @@ const TaskEvidence = ({ task, onClose }) => {
 
       // Prepare the evidence data
       const evidenceData = {
-        task_id: task.id,
+        task_id: String(task.id), // string
         task_title: task.title,
         task_description: task.description,
         evidence_description: description,
-        hours_spent: hoursSpent,
+        hours_spent: hoursSpent, // integer
         images: imageBase64s,
         student_name: studentName,
-        due_date: task.due_date,
-        student_id: task.student_id
+        due_date: String(task.due_date)
       };
 
       console.log('Task data:', task); // Para debug

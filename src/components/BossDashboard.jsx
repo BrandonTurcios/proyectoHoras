@@ -11,20 +11,16 @@ import {
   User,
   Plus,
   Edit2,
-  Trash2
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Mail
 } from 'lucide-react';
-
-// Áreas dummy
-const AREAS = [
-  { id: 'ingenieria', name: 'Ingeniería' },
-  { id: 'ciencias', name: 'Ciencias' },
-  { id: 'tecnologia', name: 'Tecnología' },
-  { id: 'laboratorios', name: 'Laboratorios' }
-];
 
 const BossDashboard = () => {
   const [activeTab, setActiveTab] = useState('admins');
   const [admins, setAdmins] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -36,6 +32,8 @@ const BossDashboard = () => {
     name: '',
     description: ''
   });
+  const [requests, setRequests] = useState([]);
+  const [students, setStudents] = useState([]);
 
   const { userData, signOut } = useAuth();
 
@@ -43,6 +41,9 @@ const BossDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       await fetchAdmins();
+      await fetchAreas();
+      await fetchRequests();
+      await fetchStudents();
       setLoading(false);
     };
     fetchData();
@@ -73,6 +74,40 @@ const BossDashboard = () => {
     }
   };
 
+  const fetchAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .select('*');
+      if (error) throw error;
+      if (data) setAreas(data);
+    } catch (error) {
+      console.error("Error fetching areas:", error);
+    }
+  };
+
+  const fetchRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('area_change_requests')
+        .select('*');
+      if (error) throw error;
+      if (data) setRequests(data);
+    } catch (error) {
+      console.error('Error fetching area change requests:', error);
+    }
+  };
+
+  const fetchStudents = async () => {
+    try {
+      const { data, error } = await supabase.from('users').select('id, full_name, role');
+      if (error) throw error;
+      if (data) setStudents(data);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    }
+  };
+
   const handleAssignArea = async (adminId, areaId) => {
     try {
       const { error } = await supabase
@@ -99,14 +134,47 @@ const BossDashboard = () => {
     }
   };
 
+  const handleApproveRequest = async (request, areaId) => {
+    try {
+      // Update user's area
+      await supabase
+        .from('users')
+        .update({ internship_area: areaId })
+        .eq('id', request.student_id);
+      // Update request status
+      await supabase
+        .from('area_change_requests')
+        .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: userData.id })
+        .eq('id', request.id);
+      await fetchRequests();
+      await fetchAdmins();
+    } catch (error) {
+      console.error('Error approving request:', error);
+    }
+  };
+
+  const handleRejectRequest = async (request) => {
+    try {
+      await supabase
+        .from('area_change_requests')
+        .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: userData.id })
+        .eq('id', request.id);
+      await fetchRequests();
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'admins':
-        return <AdminsList admins={admins} areas={AREAS} onAssignArea={handleAssignArea} />;
+        return <AdminsList admins={admins} areas={areas} onAssignArea={handleAssignArea} />;
       case 'areas':
-        return <AreasList areas={AREAS} />;
+        return <AreasList areas={areas} />;
       case 'statistics':
-        return <Statistics admins={admins} areas={AREAS} />;
+        return <Statistics admins={admins} areas={areas} />;
+      case 'requests':
+        return <RequestsList requests={requests} areas={areas} students={students} onApprove={handleApproveRequest} onReject={handleRejectRequest} />;
       default:
         return null;
     }
@@ -196,6 +264,18 @@ const BossDashboard = () => {
           >
             <BarChart2 className="w-5 h-5 mr-3" />
             <span>Estadísticas</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('requests');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+              activeTab === 'requests' ? 'bg-indigo-50 text-indigo-600' : ''
+            }`}
+          >
+            <Mail className="w-5 h-5 mr-3" />
+            <span>Solicitudes</span>
           </button>
         </nav>
 
@@ -468,6 +548,118 @@ const Statistics = ({ admins, areas }) => {
         <h3 className="text-lg font-bold text-indigo-800 mb-2">Administradores Asignados</h3>
         <p className="text-3xl font-bold text-indigo-600">{assignedAdmins}</p>
       </div>
+    </div>
+  );
+};
+
+const RequestsList = ({ requests, areas, students, onApprove, onReject }) => {
+  const [statusFilter, setStatusFilter] = useState('pending');
+  const [studentFilter, setStudentFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [selectedAreaIds, setSelectedAreaIds] = useState({}); // { [requestId]: areaId }
+
+  // Only students (not admins, bosses, etc)
+  const studentOptions = students.filter(s => s.role === 'student');
+
+  const filteredRequests = requests.filter(r => {
+    const statusMatch = statusFilter === 'all' ? true : r.status === statusFilter;
+    const studentMatch = studentFilter === '' ? true : r.student_id === studentFilter;
+    const dateMatch = dateFilter === '' ? true : (r.created_at && r.created_at.startsWith(dateFilter));
+    return statusMatch && studentMatch && dateMatch;
+  });
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold text-indigo-700 mb-4">Solicitudes de Cambio de Área</h2>
+      <div className="flex flex-wrap gap-4 mb-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Estado</label>
+          <select
+            className="border rounded-lg px-3 py-2 text-sm"
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+          >
+            <option value="pending">Pendientes</option>
+            <option value="approved">Aprobadas</option>
+            <option value="rejected">Rechazadas</option>
+            <option value="all">Todas</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Estudiante</label>
+          <select
+            className="border rounded-lg px-3 py-2 text-sm"
+            value={studentFilter}
+            onChange={e => setStudentFilter(e.target.value)}
+          >
+            <option value="">Todos</option>
+            {studentOptions.map(student => (
+              <option key={student.id} value={student.id}>{student.full_name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Fecha</label>
+          <input
+            type="date"
+            className="border rounded-lg px-3 py-2 text-sm"
+            value={dateFilter}
+            onChange={e => setDateFilter(e.target.value)}
+          />
+        </div>
+      </div>
+      {filteredRequests.length === 0 ? (
+        <div className="text-gray-500">No hay solicitudes para los filtros seleccionados.</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {filteredRequests.map(req => (
+            <div key={req.id} className="bg-white rounded-xl p-6 shadow-md border border-indigo-100 flex flex-col gap-2">
+              <div className="font-bold text-indigo-800">
+                Estudiante: {students.find(s => s.id === req.student_id)?.full_name || req.student_id}
+              </div>
+              <div className="text-sm text-gray-700">Área actual: {areas.find(a => a.id === req.current_area)?.name || req.current_area}</div>
+              <div className="text-sm text-gray-700">Razón: {req.reason}</div>
+              <div className="text-xs text-gray-400">Fecha: {req.created_at ? req.created_at.split('T')[0] : ''}</div>
+              {req.status === 'pending' && (
+                <div className="flex flex-col gap-2 mt-2">
+                  <select
+                    className="border rounded-lg px-3 py-2 text-sm"
+                    value={selectedAreaIds[req.id] || ''}
+                    onChange={e => setSelectedAreaIds(prev => ({ ...prev, [req.id]: e.target.value }))}
+                  >
+                    <option value="">Selecciona nueva área</option>
+                    {areas.map(area => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onApprove(req, selectedAreaIds[req.id])}
+                      disabled={!selectedAreaIds[req.id]}
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />Aprobar
+                    </button>
+                    <button
+                      onClick={() => onReject(req)}
+                      className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />Rechazar
+                    </button>
+                  </div>
+                </div>
+              )}
+              {req.status !== 'pending' && (
+                <div className={`mt-2 px-3 py-1 rounded-full text-xs font-semibold w-max ${
+                  req.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                }`}>
+                  {req.status === 'approved' ? 'Aprobada' : 'Rechazada'}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
