@@ -6,11 +6,19 @@ import {
   Clock,
   Calendar,
   CheckCircle,
+import {
+  Clock,
+  Calendar,
+  CheckCircle,
   AlertCircle,
   ChevronRight,
   Upload,
   ChevronDown,
   LogOut,
+  User,
+  ListChecks,
+  BarChart2,
+  ArrowLeftRight
   User,
   ListChecks,
   BarChart2,
@@ -29,6 +37,7 @@ const SIDEBAR_ITEMS = [
 
 const StudentDashboard = () => {
   const { userData, signOut, refreshUserData } = useAuth();
+  const { userData, signOut, refreshUserData } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,13 +47,25 @@ const StudentDashboard = () => {
   const [taskFilter, setTaskFilter] = useState('all');
   const [visibleCount, setVisibleCount] = useState(5);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [areas, setAreas] = useState([]);
+  const [showAreaRequestModal, setShowAreaRequestModal] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [taskFilter, setTaskFilter] = useState('all');
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('tasks');
   const [activeTab, setActiveTab] = useState('tasks');
 
   useEffect(() => {
     if (userData) {
       fetchTasks();
     }
+    const fetchAreas = async () => {
+      const { data, error } = await supabase.from('areas').select('*');
+      if (!error && data) setAreas(data);
+    };
+    fetchAreas();
     const fetchAreas = async () => {
       const { data, error } = await supabase.from('areas').select('*');
       if (!error && data) setAreas(data);
@@ -57,6 +78,7 @@ const StudentDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('tasks')
+        .select(`*, evidences (*)`)
         .select(`*, evidences (*)`)
         .eq('student_id', userData.id)
         .order('due_date', { ascending: true });
@@ -93,6 +115,8 @@ const StudentDashboard = () => {
 
   const progress = calculateProgress();
   const progressColor = getProgressColor(Math.min(100, progress));
+  const progress = calculateProgress();
+  const progressColor = getProgressColor(Math.min(100, progress));
 
   // Filtrado de tareas por estado
   const filteredTasks = tasks.filter(task => {
@@ -117,7 +141,24 @@ const StudentDashboard = () => {
 
   // Main content rendering by tab
   let mainContent = null;
+  // Sidebar area name
+  const areaName = areas.find(a => a.id === userData?.internship_area)?.name || 'Sin área';
+
+  // Responsive: close sidebar on resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 640) {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Main content rendering by tab
+  let mainContent = null;
   if (loading) {
+    mainContent = (
     mainContent = (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>

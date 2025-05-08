@@ -21,6 +21,7 @@ const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [areas, setAreas] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -30,6 +31,12 @@ const AdminDashboard = () => {
   const { userData, signOut } = useAuth();
 
   useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchStudents(), fetchTasks(), fetchAreas()]);
+      setLoading(false);
+    };
+    if (userData?.internship_area) {
     const fetchData = async () => {
       setLoading(true);
       await Promise.all([fetchStudents(), fetchTasks(), fetchAreas()]);
@@ -97,6 +104,19 @@ const AdminDashboard = () => {
     }
   };
 
+
+  const fetchAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .select('*');
+      if (error) throw error;
+      if (data) setAreas(data);
+    } catch (error) {
+      console.error("Error fetching areas:", error);
+    }
+  };
+
   const handleSignOut = async () => {
     setLogoutLoading(true);
     try {
@@ -115,9 +135,12 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case 'students':
         return <StudentsList students={students} areas={areas} />;
+        return <StudentsList students={students} areas={areas} />;
       case 'tasks':
         return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} areas={areas} />;
+        return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} areas={areas} />;
       case 'statistics':
+        return <Statistics students={students} tasks={tasks} areas={areas} />;
         return <Statistics students={students} tasks={tasks} areas={areas} />;
       case 'schedule':
         return selectedStudentId ? (
@@ -138,6 +161,7 @@ const AdminDashboard = () => {
             students={students}
             onSelectStudent={(id) => setSelectedStudentId(id)}
             showScheduleOption={true}
+            areas={areas}
             areas={areas}
           />
         );
@@ -340,6 +364,7 @@ const AdminDashboard = () => {
 
 // Componente de lista de estudiantes
 const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) => {
+const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
@@ -356,6 +381,10 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) 
     });
 
     return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredStudents.map(student => {
+          const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
+          return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredStudents.map(student => {
           const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
@@ -386,6 +415,11 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) 
                     Área: {areaName || student.internship_area || 'Sin área'}
                   </div>
                 )}
+                {areas && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    Área: {areaName || student.internship_area || 'Sin área'}
+                  </div>
+                )}
               </div>
               {showScheduleOption && (
                 <button
@@ -396,6 +430,8 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) 
                 </button>
               )}
             </div>
+          );
+        })}
           );
         })}
       </div>

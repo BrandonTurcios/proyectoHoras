@@ -32,9 +32,9 @@ const Router = () => {
 
   // Render different dashboards based on user role
   switch (userData.role) {
-    case 'admin':
-      return <BossDashboard />;
     case 'boss':
+      return <BossDashboard />;
+    case 'admin':
       return <AdminDashboard />;
     case 'student':
       return <StudentDashboard />;
