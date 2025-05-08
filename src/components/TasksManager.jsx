@@ -102,7 +102,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
           <select
-            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto"
+            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           >
@@ -112,7 +112,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
             <option value="approved">Aprobadas</option>
           </select>
           <select
-            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto"
+            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
             value={selectedSpace}
             onChange={(e) => setSelectedSpace(e.target.value)}
           >
@@ -123,7 +123,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
             ))}
           </select>
           <select
-            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto"
+            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
             value={selectedStudent}
             onChange={(e) => setSelectedStudent(e.target.value)}
           >
@@ -147,14 +147,14 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
       {/* Tasks Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredTasks.map(task => (
-          <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
+          <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
             <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
               <div className="relative group flex-1 min-w-0">
-                <h3 className="font-bold text-lg sm:text-xl text-indigo-800 break-words flex-1 min-w-0 truncate cursor-pointer" title={task.title}>
+                <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate cursor-pointer" title={task.title}>
                   {task.title}
                 </h3>
                 {/* Tooltip visual solo en desktop */}
-                <span className="hidden group-hover:flex absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words"
+                <span className="hidden group-hover:flex absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words"
                   style={{ pointerEvents: 'none' }}>
                   {task.title}
                 </span>
@@ -162,7 +162,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
               <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
                 task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white animate-pulse' :
                 task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
-                'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900'
+                'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
               }`} title={
                 task.status === 'approved' ? 'Aprobada' :
                 task.status === 'submitted' ? 'Enviada' : 'Pendiente'
@@ -171,20 +171,20 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
                  task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
               </span>
             </div>
-            <p className="text-gray-700 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
-            <div className="space-y-2 text-xs sm:text-sm text-indigo-700 mt-auto">
+            <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
+            <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
               <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400" />
+                <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
                 <span className="break-words">Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400" />
+                <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
                 <span className="break-words">{task.required_hours} horas requeridas</span>
               </div>
               <div className="flex items-center">
-                <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400" />
+                <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
                 <span className="break-words">
-                  Asignado a: <span className="font-bold text-indigo-700">{task.student?.full_name || 'Sin asignar'}</span>
+                  Asignado a: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.student?.full_name || 'Sin asignar'}</span>
                 </span>
               </div>
             </div>
@@ -217,24 +217,24 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
       {/* Evidence Review Modal */}
       {showEvidenceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold">Revisión de Evidencia</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Revisión de Evidencia</h2>
               <button
                 onClick={() => setShowEvidenceModal(null)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <h3 className="font-medium text-sm sm:text-base">Descripción del estudiante:</h3>
-                <p className="text-gray-600 text-sm sm:text-base">{showEvidenceModal.evidences?.[0]?.description || 'No hay descripción disponible'}</p>
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Descripción del estudiante:</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">{showEvidenceModal.evidences?.[0]?.description || 'No hay descripción disponible'}</p>
               </div>
               <div>
-                <h3 className="font-medium text-sm sm:text-base">Horas dedicadas:</h3>
-                <p className="text-gray-600 text-sm sm:text-base">{showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours} horas</p>
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Horas dedicadas:</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">{showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours} horas</p>
               </div>
               {showEvidenceModal.evidence_pdf_url && (
                 <a
@@ -251,7 +251,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
                 <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-6">
                   <button
                     onClick={() => handleRejectEvidence(showEvidenceModal.id)}
-                    className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 rounded-lg hover:bg-red-50 w-full sm:w-auto text-sm sm:text-base"
+                    className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 w-full sm:w-auto text-sm sm:text-base"
                   >
                     <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                     Rechazar
@@ -296,28 +296,28 @@ const TaskForm = ({ students, spaces, onSubmit, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg sm:text-xl font-semibold mb-4">Nueva Tarea</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Nueva Tarea</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Título
             </label>
             <input
               type="text"
               required
-              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base"
+              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Descripción
             </label>
             <textarea
               required
-              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base"
+              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
               rows="4"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -325,11 +325,11 @@ const TaskForm = ({ students, spaces, onSubmit, onClose }) => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Espacio
               </label>
               <select
-                className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base"
+                className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
                 value={formData.space}
                 onChange={(e) => setFormData({ ...formData, space: e.target.value })}
               >
@@ -341,37 +341,37 @@ const TaskForm = ({ students, spaces, onSubmit, onClose }) => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Horas requeridas
               </label>
               <input
                 type="number"
                 min="1"
                 required
-                className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base"
+                className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
                 value={formData.required_hours}
                 onChange={(e) => setFormData({ ...formData, required_hours: parseInt(e.target.value) })}
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Fecha de entrega
             </label>
             <input
               type="date"
               required
-              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base"
+              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
               value={formData.due_date}
               onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Asignar a estudiante (opcional)
             </label>
             <select
-              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base"
+              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
               value={formData.student_id}
               onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
             >
@@ -387,7 +387,7 @@ const TaskForm = ({ students, spaces, onSubmit, onClose }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-50 w-full sm:w-auto text-sm sm:text-base"
+              className="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 w-full sm:w-auto text-sm sm:text-base text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
             >
               Cancelar
             </button>

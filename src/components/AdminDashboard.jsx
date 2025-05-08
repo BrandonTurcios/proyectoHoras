@@ -14,11 +14,13 @@ import {
 import TasksManager from './TasksManager';
 import Statistics from './Statistics';
 import StudentSchedule from './StudentSchedule';
+import ThemeToggle from './ThemeToggle';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('students');
   const [students, setStudents] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -28,12 +30,12 @@ const AdminDashboard = () => {
   const { userData, signOut } = useAuth();
 
   useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchStudents(), fetchTasks(), fetchAreas()]);
+      setLoading(false);
+    };
     if (userData?.internship_area) {
-      const fetchData = async () => {
-        setLoading(true);
-        await Promise.all([fetchStudents(), fetchTasks()]);
-        setLoading(false);
-      };
       fetchData();
     }
   }, [userData]);
@@ -82,6 +84,19 @@ const AdminDashboard = () => {
       console.error("Error fetching tasks:", error);
     }
   };
+
+  const fetchAreas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .select('*');
+      if (error) throw error;
+      if (data) setAreas(data);
+    } catch (error) {
+      console.error("Error fetching areas:", error);
+    }
+  };
+
   const handleSignOut = async () => {
     setLogoutLoading(true);
     try {
@@ -99,11 +114,11 @@ const AdminDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'students':
-        return <StudentsList students={students} />;
+        return <StudentsList students={students} areas={areas} />;
       case 'tasks':
-        return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} />;
+        return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} areas={areas} />;
       case 'statistics':
-        return <Statistics students={students} tasks={tasks} />;
+        return <Statistics students={students} tasks={tasks} areas={areas} />;
       case 'schedule':
         return selectedStudentId ? (
           <div>
@@ -123,6 +138,7 @@ const AdminDashboard = () => {
             students={students}
             onSelectStudent={(id) => setSelectedStudentId(id)}
             showScheduleOption={true}
+            areas={areas}
           />
         );
       default:
@@ -132,11 +148,11 @@ const AdminDashboard = () => {
   
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-indigo-200">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-indigo-200 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
       {/* Mobile Menu Button */}
       <button
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-xl bg-white shadow-lg sm:hidden border border-indigo-100"
+        className="fixed top-4 left-4 z-50 p-2 rounded-xl bg-white dark:bg-gray-900 shadow-lg sm:hidden border border-indigo-100 dark:border-gray-800"
       >
         <svg
           className="w-6 h-6"
@@ -171,12 +187,17 @@ const AdminDashboard = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed w-64 h-full bg-white/90 shadow-2xl flex flex-col transition-all duration-300 z-40 rounded-r-3xl border-r border-indigo-100 ${
+      <div className={`fixed w-64 h-full bg-white/90 dark:bg-gray-900/95 shadow-2xl flex flex-col transition-all duration-300 z-40 rounded-r-3xl border-r border-indigo-100 dark:border-gray-800 ${
         isSidebarOpen ? 'left-0' : '-left-64 sm:left-0'
       }`}>
         <div className="p-2 sm:p-6">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 drop-shadow-sm">Panel de Control</h2>
-          <p className="text-xs sm:text-sm text-indigo-500">{userData?.internship_area}</p>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm">Panel de Control</h2>
+          <p className="text-xs sm:text-sm text-indigo-500 dark:text-indigo-400">
+            {(() => {
+              const areaName = areas && areas.find(a => a.id === userData?.internship_area)?.name;
+              return areaName || userData?.internship_area || 'Sin área';
+            })()}
+          </p>
         </div>
         
         <nav className="mt-4 sm:mt-6 flex-1">
@@ -185,8 +206,8 @@ const AdminDashboard = () => {
               setActiveTab('students');
               setIsSidebarOpen(false);
             }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'students' ? 'bg-indigo-50 text-indigo-600' : ''
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+              activeTab === 'students' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
             }`}
           >
             <Users className="w-5 h-5 mr-3" />
@@ -197,8 +218,8 @@ const AdminDashboard = () => {
               setActiveTab('tasks');
               setIsSidebarOpen(false);
             }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'tasks' ? 'bg-indigo-50 text-indigo-600' : ''
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+              activeTab === 'tasks' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
             }`}
           >
             <ClipboardList className="w-5 h-5 mr-3" />
@@ -209,8 +230,8 @@ const AdminDashboard = () => {
               setActiveTab('statistics');
               setIsSidebarOpen(false);
             }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'statistics' ? 'bg-indigo-50 text-indigo-600' : ''
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+              activeTab === 'statistics' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
             }`}
           >
             <BarChart2 className="w-5 h-5 mr-3" />
@@ -221,8 +242,8 @@ const AdminDashboard = () => {
               setActiveTab('schedule');
               setIsSidebarOpen(false);
             }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'schedule' ? 'bg-indigo-50 text-indigo-600' : ''
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+              activeTab === 'schedule' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
             }`}
           >
             <Calendar className="w-5 h-5 mr-3" />
@@ -230,63 +251,65 @@ const AdminDashboard = () => {
           </button>
         </nav>
 
-        {/* Menú de usuario */}
-        <div className="p-2 sm:p-4 border-t">
-          <div className="relative">
-            <button
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="w-full flex items-center justify-between p-2 sm:p-3 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <div className="flex items-center">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <User className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600" />
-                </div>
-                <div className="text-left ml-3">
-                  <p className="text-xs sm:text-sm font-medium truncate max-w-[120px]">
-                    {userData?.full_name || 'Administrador'}
-                  </p>
-                  <p className="text-xs text-gray-500 truncate max-w-[120px]">
-                    {userData?.email || ''}
-                  </p>
-                </div>
-              </div>
-              <ChevronDown 
-                className={`w-4 h-4 transition-transform ${isUserMenuOpen ? 'transform rotate-180' : ''}`} 
-              />
-            </button>
-            
-            {isUserMenuOpen && (
-              <div 
-                className="absolute bottom-full left-0 right-0 mb-2 bg-white rounded-lg shadow-lg py-1 z-10 border border-gray-200"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={handleSignOut}
-                  disabled={logoutLoading}
-                  className={`w-full flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm ${
-                    logoutLoading ? 'text-gray-400' : 'text-red-600 hover:bg-red-50'
-                  }`}
-                >
-                  {logoutLoading ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-3 w-3 sm:h-4 sm:w-4 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Cerrando sesión...
-                    </>
-                  ) : (
-                    <>
-                      <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                      Cerrar sesión
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
+{/* Menú de usuario y ThemeToggle al fondo */}
+<div className="mt-auto p-2 sm:p-4 border-t border-indigo-100 dark:border-gray-800 flex flex-col gap-4">
+  <div className="flex items-center gap-2">
+    <ThemeToggle />
+    <div className="relative flex-1 min-w-0"> {/* Cambiado a flex-1 y min-w-0 */}
+      <button
+        onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+        className="w-full flex items-center justify-between p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors overflow-hidden" 
+      >
+        <div className="flex items-center min-w-0"> {/* Añadido min-w-0 */}
+          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0">
+            <User className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div className="text-left ml-3 min-w-0"> {/* Añadido min-w-0 */}
+            <p className="text-xs sm:text-sm font-medium truncate text-gray-900 dark:text-gray-100">
+              {userData?.full_name || 'Administrador'}
+            </p>
+            <p className="text-xs truncate text-gray-500 dark:text-gray-400">
+              {userData?.email || ''}
+            </p>
           </div>
         </div>
-      </div>
+        <ChevronDown 
+          className={`w-4 h-4 transition-transform flex-shrink-0 ${isUserMenuOpen ? 'transform rotate-180' : ''} text-gray-500 dark:text-gray-400`} 
+        />
+      </button>
+      {isUserMenuOpen && (
+        <div 
+          className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={handleSignOut}
+            disabled={logoutLoading}
+            className={`w-full flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm ${
+              logoutLoading ? 'text-gray-400' : 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+            }`}
+          >
+            {logoutLoading ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-3 w-3 sm:h-4 sm:w-4 text-gray-600 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Cerrando sesión...
+              </>
+            ) : (
+              <>
+                <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                Cerrar sesión
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+</div>
 
       {/* Main Content */}
       <div className="ml-0 sm:ml-64 p-4 sm:p-8 md:p-12 transition-all duration-300">
@@ -297,15 +320,15 @@ const AdminDashboard = () => {
         ) : (
           <div className="space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h1 className="text-2xl font-extrabold text-indigo-700 drop-shadow-sm">Panel Administrativo</h1>
+              <h1 className="text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm">Panel Administrativo</h1>
               <div className="flex items-center gap-4">
-                <span className="hidden sm:inline-block text-indigo-500 font-semibold text-lg">{userData?.full_name || 'Administrador'}</span>
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <User className="w-6 h-6 text-indigo-600" />
+                <span className="hidden sm:inline-block text-indigo-500 dark:text-indigo-400 font-semibold text-lg">{userData?.full_name || 'Administrador'}</span>
+                <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
+                  <User className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
               </div>
             </div>
-            <div className="bg-white/90 rounded-2xl shadow-xl p-4 sm:p-8">
+            <div className="bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl p-4 sm:p-8">
               {renderContent()}
             </div>
           </div>
@@ -316,7 +339,7 @@ const AdminDashboard = () => {
 };
 
 // Componente de lista de estudiantes
-const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
+const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
@@ -333,9 +356,10 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
     });
 
     return (
-      <div className="bg-white/90 rounded-2xl shadow-xl p-4 sm:p-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredStudents.map(student => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredStudents.map(student => {
+          const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
+          return (
             <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
               <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
               <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
@@ -357,6 +381,11 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
                 <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-indigo-700">
                   {student.current_hours} de {student.hours_required} horas completadas
                 </div>
+                {areas && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    Área: {areaName || student.internship_area || 'Sin área'}
+                  </div>
+                )}
               </div>
               {showScheduleOption && (
                 <button
@@ -367,8 +396,8 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption }) => {
                 </button>
               )}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     );
   };

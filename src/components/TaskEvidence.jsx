@@ -73,15 +73,14 @@ const TaskEvidence = ({ task, onClose }) => {
 
       // Prepare the evidence data
       const evidenceData = {
-        task_id: task.id,
+        task_id: String(task.id), // string
         task_title: task.title,
         task_description: task.description,
         evidence_description: description,
-        hours_spent: hoursSpent,
+        hours_spent: hoursSpent, // integer
         images: imageBase64s,
         student_name: studentName,
-        due_date: task.due_date,
-        student_id: task.student_id
+        due_date: String(task.due_date)
       };
 
       console.log('Task data:', task); // Para debug
@@ -142,13 +141,13 @@ const TaskEvidence = ({ task, onClose }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-3xl mx-auto bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Subir Evidencia</h2>
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6">
+      <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h2 className="text-xl font-semibold dark:text-white">Subir Evidencia</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
+            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
           >
             <X className="w-6 h-6" />
           </button>
@@ -156,25 +155,25 @@ const TaskEvidence = ({ task, onClose }) => {
 
         <div className="p-6">
           <div className="mb-6">
-            <h3 className="font-medium mb-2">{task.title}</h3>
-            <p className="text-gray-600 text-sm">{task.description}</p>
+            <h3 className="font-medium mb-2 dark:text-white">{task.title}</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-sm">{task.description}</p>
           </div>
 
           {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+            <div className="mb-6 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800 text-red-600 dark:text-red-300 px-4 py-3 rounded-lg">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Descripción de la actividad realizada
               </label>
               <textarea
                 required
                 rows="4"
-                className="w-full border rounded-lg px-4 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full border rounded-lg px-4 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe las actividades realizadas..."
@@ -182,7 +181,7 @@ const TaskEvidence = ({ task, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Horas dedicadas
               </label>
               <div className="flex items-center space-x-2">
@@ -191,23 +190,23 @@ const TaskEvidence = ({ task, onClose }) => {
                   min="1"
                   max={task.required_hours * 2}
                   required
-                  className="w-24 border rounded-lg px-4 py-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-24 border rounded-lg px-4 py-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   value={hoursSpent}
                   onChange={(e) => setHoursSpent(Number(e.target.value))}
                 />
-                <Clock className="w-5 h-5 text-gray-400" />
+                <Clock className="w-5 h-5 text-gray-400 dark:text-gray-300" />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Evidencias (imágenes)
               </label>
-              <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+              <div className="mt-2 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 dark:border-gray-600 border-dashed rounded-lg">
                 <div className="space-y-1 text-center">
-                  <ImageIcon className="mx-auto h-12 w-12 text-gray-400" />
-                  <div className="flex text-sm text-gray-600">
-                    <label className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
+                  <ImageIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-300" />
+                  <div className="flex text-sm text-gray-600 dark:text-gray-300">
+                    <label className="relative cursor-pointer bg-white dark:bg-gray-700 rounded-md font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500">
                       <span>Subir archivos</span>
                       <input
                         type="file"
@@ -219,7 +218,7 @@ const TaskEvidence = ({ task, onClose }) => {
                     </label>
                     <p className="pl-1">o arrastrar y soltar</p>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     PNG, JPG hasta 5MB
                   </p>
                 </div>
@@ -238,7 +237,7 @@ const TaskEvidence = ({ task, onClose }) => {
                     <button
                       type="button"
                       onClick={() => removeImage(index)}
-                      className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200"
+                      className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-100 dark:bg-red-900 rounded-full p-1 text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -251,7 +250,7 @@ const TaskEvidence = ({ task, onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600"
               >
                 Cancelar
               </button>
@@ -260,8 +259,8 @@ const TaskEvidence = ({ task, onClose }) => {
                 disabled={uploading || images.length === 0}
                 className={`px-4 py-2 rounded-lg text-white flex items-center ${
                   uploading || images.length === 0
-                    ? 'bg-indigo-400 cursor-not-allowed'
-                    : 'bg-indigo-600 hover:bg-indigo-700'
+                    ? 'bg-indigo-400 dark:bg-indigo-500 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:hover:bg-indigo-800'
                 }`}
               >
                 {uploading ? (

@@ -72,56 +72,36 @@ const StudentSchedule = ({ studentId, onClose, readOnly = false }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-[300px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Mi Horario</h2>
-          <div className="flex space-x-4">
-            {!readOnly && (
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700"
-              >
-                <Plus className="w-5 h-5" />
-                <span>Agregar Disponibilidad</span>
-              </button>
-            )}
-            {onClose && (
-              <button
-                onClick={onClose}
-                className="text-gray-600 hover:text-gray-700"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="grid grid-cols-7 gap-4">
+    <div className="bg-white rounded-2xl shadow-xl p-0 sm:p-0">
+      <div className="p-6 border-b border-gray-200 flex items-center">
+        <h2 className="text-xl font-semibold text-indigo-800">Mi Horario</h2>
+      </div>
+      <div className="p-6">
+        <div className="mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-4">
             {daysOfWeek.map(day => (
               <div key={day} className="text-center">
-                <h3 className="font-medium text-gray-900 mb-4">{day}</h3>
+                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">{day}</h3>
                 <div className="space-y-2">
                   {getScheduleForDay(day).map(slot => (
                     <div
                       key={slot.id}
-                      className="bg-indigo-50 rounded-lg p-2 relative group"
+                      className="bg-indigo-50 dark:bg-gray-800 rounded-lg p-2 relative group"
                     >
-                      <div className="text-sm text-indigo-700">
+                      <div className="text-sm text-indigo-700 dark:text-indigo-300">
                         {slot.start_time} - {slot.end_time}
                       </div>
                       {!readOnly && (
                         <button
                           onClick={() => handleDeleteTimeSlot(slot.id)}
-                          className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-100 rounded-full p-1 text-red-600 hover:bg-red-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-100 dark:bg-red-900 rounded-full p-1 text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -133,15 +113,25 @@ const StudentSchedule = ({ studentId, onClose, readOnly = false }) => {
             ))}
           </div>
         </div>
+        {!readOnly && (
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Agregar Disponibilidad</span>
+            </button>
+          </div>
+        )}
+        {!readOnly && showAddForm && (
+          <AddTimeSlotForm
+            onSubmit={handleAddTimeSlot}
+            onClose={() => setShowAddForm(false)}
+            daysOfWeek={daysOfWeek}
+          />
+        )}
       </div>
-
-      {!readOnly && showAddForm && (
-        <AddTimeSlotForm
-          onSubmit={handleAddTimeSlot}
-          onClose={() => setShowAddForm(false)}
-          daysOfWeek={daysOfWeek}
-        />
-      )}
     </div>
   );
 };
@@ -159,16 +149,16 @@ const AddTimeSlotForm = ({ onSubmit, onClose, daysOfWeek }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-        <h3 className="text-lg font-medium mb-4">Agregar Disponibilidad</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
+        <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">Agregar Disponibilidad</h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Día de la semana
             </label>
             <select
-              className="w-full border rounded-lg px-4 py-2"
+              className="w-full border rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
               value={formData.dayOfWeek}
               onChange={e => setFormData({ ...formData, dayOfWeek: e.target.value })}
             >
@@ -179,23 +169,23 @@ const AddTimeSlotForm = ({ onSubmit, onClose, daysOfWeek }) => {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Hora inicio
               </label>
               <input
                 type="time"
-                className="w-full border rounded-lg px-4 py-2"
+                className="w-full border rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
                 value={formData.startTime}
                 onChange={e => setFormData({ ...formData, startTime: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Hora fin
               </label>
               <input
                 type="time"
-                className="w-full border rounded-lg px-4 py-2"
+                className="w-full border rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
                 value={formData.endTime}
                 onChange={e => setFormData({ ...formData, endTime: e.target.value })}
               />
@@ -205,7 +195,7 @@ const AddTimeSlotForm = ({ onSubmit, onClose, daysOfWeek }) => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded-lg text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600"
             >
               Cancelar
             </button>
