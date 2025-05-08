@@ -39,7 +39,7 @@ const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [notification, setNotification] = useState(null);
+
   const { signIn, signUp } = useAuth();
 
   const [formData, setFormData] = useState({
@@ -51,16 +51,6 @@ const Login = () => {
     internshipArea: '',
     hoursRequired: 120
   });
-
-  const [areas, setAreas] = useState([]);
-
-  useEffect(() => {
-    const fetchAreas = async () => {
-      const { data, error } = await supabase.from('areas').select('*');
-      if (!error && data) setAreas(data);
-    };
-    fetchAreas();
-  }, []);
 
   const [areas, setAreas] = useState([]);
 
@@ -164,82 +154,10 @@ const Login = () => {
     return 'Credenciales incorrectas';
   };
 
-  const isFormValid = () => {
-    if (isLogin) {
-      return formData.email.trim() !== '' && formData.password.trim() !== '';
-    } else {
-      return (
-        formData.email.trim() !== '' &&
-        formData.password.trim() !== '' &&
-        formData.confirmPassword.trim() !== '' &&
-        formData.fullName.trim() !== '' &&
-        formData.internshipArea !== '' &&
-        formData.password === formData.confirmPassword
-      );
-    }
-  };
+  
 
 
-  const showNotification = (type, message) => {
-    setNotification({ type, message });
-    // Auto cerrar después de 5 segundos
-    setTimeout(() => {
-      setNotification(null);
-    }, 5000);
-  };
 
-  const getErrorMessage = (error) => {
-    if (!error) return 'Credenciales incorrectas';
-    
-    const errorMessage = error.toString().toLowerCase();
-    
-    // Errores de verificación de correo (prioridad alta)
-    if (errorMessage.includes('email not confirmed') || 
-        errorMessage.includes('please verify your email') ||
-        errorMessage.includes('email not verified') ||
-        errorMessage.includes('verifica tu correo electrónico') ||
-        errorMessage.includes('unverified email')) {
-      return 'Por favor, verifica tu correo electrónico antes de iniciar sesión';
-    }
-
-    // Errores de autenticación
-    if (errorMessage.includes('invalid login credentials') || 
-        errorMessage.includes('bad request') || 
-        errorMessage.includes('400') ||
-        errorMessage.includes('invalid email or password')) {
-      return 'El correo o la contraseña son incorrectos';
-    }
-
-    // Errores de correo electrónico
-    if (errorMessage.includes('email already registered')) {
-      return 'Este correo ya está registrado. Por favor, inicia sesión';
-    }
-    if (errorMessage.includes('invalid email')) {
-      return 'El formato del correo electrónico no es válido';
-    }
-    
-    // Errores de contraseña
-    if (errorMessage.includes('password')) {
-      return 'La contraseña debe tener al menos 6 caracteres';
-    }
-    
-    // Errores de conexión
-    if (errorMessage.includes('network') || 
-        errorMessage.includes('connection') || 
-        errorMessage.includes('timeout')) {
-      return 'No se pudo conectar al servidor. Por favor, verifica tu conexión a internet';
-    }
-
-    // Errores de servidor
-    if (errorMessage.includes('500') || 
-        errorMessage.includes('server') || 
-        errorMessage.includes('internal')) {
-      return 'El servidor no está respondiendo. Por favor, intenta más tarde';
-    }
-    
-    // Error por defecto
-    return 'Credenciales incorrectas';
-  };
 
   const isFormValid = () => {
     if (isLogin) {
@@ -294,17 +212,7 @@ const Login = () => {
           }
           setLoading(false);
           return;
-        }
-        const { data, error } = await signIn(formData.email, formData.password);
-        if (error) {
-          // Verificar específicamente el error de correo no verificado
-          if (error.includes('verifica tu correo electrónico')) {
-            showNotification('error', 'Por favor, verifica tu correo electrónico antes de iniciar sesión');
-          } else {
-            showNotification('error', getErrorMessage(error));
-          }
-          setLoading(false);
-          return;
+      
         }
       } else {
         if (formData.password !== formData.confirmPassword) {
@@ -356,7 +264,7 @@ const Login = () => {
   };
 
   const validateEmail = () => true; // Permitir cualquier email temporalmente
-  const validateEmail = () => true; // Permitir cualquier email temporalmente
+ 
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-indigo-200 p-4">

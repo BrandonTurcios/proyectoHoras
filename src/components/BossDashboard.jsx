@@ -15,10 +15,6 @@ import {
   CheckCircle,
   XCircle,
   Mail
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Mail
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -26,7 +22,7 @@ const BossDashboard = () => {
   const [activeTab, setActiveTab] = useState('admins');
   const [admins, setAdmins] = useState([]);
   const [areas, setAreas] = useState([]);
-  const [areas, setAreas] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -40,8 +36,7 @@ const BossDashboard = () => {
   });
   const [requests, setRequests] = useState([]);
   const [students, setStudents] = useState([]);
-  const [requests, setRequests] = useState([]);
-  const [students, setStudents] = useState([]);
+ 
 
   const { userData, signOut } = useAuth();
 
@@ -49,9 +44,6 @@ const BossDashboard = () => {
     const fetchData = async () => {
       setLoading(true);
       await fetchAdmins();
-      await fetchAreas();
-      await fetchRequests();
-      await fetchStudents();
       await fetchAreas();
       await fetchRequests();
       await fetchStudents();
@@ -85,17 +77,6 @@ const BossDashboard = () => {
     }
   };
 
-  const fetchAreas = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('areas')
-        .select('*');
-      if (error) throw error;
-      if (data) setAreas(data);
-    } catch (error) {
-      console.error("Error fetching areas:", error);
-    }
-  };
 
   const fetchRequests = async () => {
     try {
@@ -109,15 +90,6 @@ const BossDashboard = () => {
     }
   };
 
-  const fetchStudents = async () => {
-    try {
-      const { data, error } = await supabase.from('users').select('id, full_name, role');
-      if (error) throw error;
-      if (data) setStudents(data);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    }
-  };
 
   const fetchAreas = async () => {
     try {
@@ -131,17 +103,6 @@ const BossDashboard = () => {
     }
   };
 
-  const fetchRequests = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('area_change_requests')
-        .select('*');
-      if (error) throw error;
-      if (data) setRequests(data);
-    } catch (error) {
-      console.error('Error fetching area change requests:', error);
-    }
-  };
 
   const fetchStudents = async () => {
     try {
@@ -210,52 +171,20 @@ const BossDashboard = () => {
     }
   };
 
-  const handleApproveRequest = async (request, areaId) => {
-    try {
-      // Update user's area
-      await supabase
-        .from('users')
-        .update({ internship_area: areaId })
-        .eq('id', request.student_id);
-      // Update request status
-      await supabase
-        .from('area_change_requests')
-        .update({ status: 'approved', reviewed_at: new Date().toISOString(), reviewed_by: userData.id })
-        .eq('id', request.id);
-      await fetchRequests();
-      await fetchAdmins();
-    } catch (error) {
-      console.error('Error approving request:', error);
-    }
-  };
-
-  const handleRejectRequest = async (request) => {
-    try {
-      await supabase
-        .from('area_change_requests')
-        .update({ status: 'rejected', reviewed_at: new Date().toISOString(), reviewed_by: userData.id })
-        .eq('id', request.id);
-      await fetchRequests();
-    } catch (error) {
-      console.error('Error rejecting request:', error);
-    }
-  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'admins':
         return <AdminsList admins={admins} areas={areas} onAssignArea={handleAssignArea} />;
-        return <AdminsList admins={admins} areas={areas} onAssignArea={handleAssignArea} />;
+       
       case 'areas':
         return <AreasList areas={areas} />;
-        return <AreasList areas={areas} />;
+        
       case 'statistics':
         return <Statistics admins={admins} areas={areas} />;
       case 'requests':
         return <RequestsList requests={requests} areas={areas} students={students} onApprove={handleApproveRequest} onReject={handleRejectRequest} />;
-        return <Statistics admins={admins} areas={areas} />;
-      case 'requests':
-        return <RequestsList requests={requests} areas={areas} students={students} onApprove={handleApproveRequest} onReject={handleRejectRequest} />;
+        
       default:
         return null;
     }
