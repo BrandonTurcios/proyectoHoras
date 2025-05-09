@@ -14,7 +14,12 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
-  Mail
+  Mail,
+  ClipboardList,
+  Calendar,
+  Clock,
+  X,
+  ExternalLink
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -22,6 +27,7 @@ const BossDashboard = () => {
   const [activeTab, setActiveTab] = useState('admins');
   const [admins, setAdmins] = useState([]);
   const [areas, setAreas] = useState([]);
+  const [tasks, setTasks] = useState([]);
   
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -43,10 +49,13 @@ const BossDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      await fetchAdmins();
-      await fetchAreas();
-      await fetchRequests();
-      await fetchStudents();
+      await Promise.all([
+        fetchAdmins(),
+        fetchAreas(),
+        fetchRequests(),
+        fetchStudents(),
+        fetchAllTasks()
+      ]);
       setLoading(false);
     };
     fetchData();
@@ -111,6 +120,24 @@ const BossDashboard = () => {
       if (data) setStudents(data);
     } catch (error) {
       console.error('Error fetching students:', error);
+    }
+  };
+
+  const fetchAllTasks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          admin:users!tasks_admin_id_fkey(full_name),
+          student:users!tasks_student_id_fkey(full_name),
+          evidences(*)
+        `);
+
+      if (error) throw error;
+      if (data) setTasks(data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
     }
   };
 
@@ -184,7 +211,8 @@ const BossDashboard = () => {
         return <Statistics admins={admins} areas={areas} />;
       case 'requests':
         return <RequestsList requests={requests} areas={areas} students={students} onApprove={handleApproveRequest} onReject={handleRejectRequest} />;
-        
+      case 'tasks':
+        return <TasksList tasks={tasks} admins={admins} />;
       default:
         return null;
     }
@@ -265,6 +293,18 @@ const BossDashboard = () => {
           </button>
           <button
             onClick={() => {
+              setActiveTab('tasks');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+              activeTab === 'tasks' ? 'bg-indigo-50 text-indigo-600' : ''
+            }`}
+          >
+            <ClipboardList className="w-5 h-5 mr-3" />
+            <span>Tareas</span>
+          </button>
+          <button
+            onClick={() => {
               setActiveTab('statistics');
               setIsSidebarOpen(false);
             }}
@@ -275,18 +315,7 @@ const BossDashboard = () => {
             <BarChart2 className="w-5 h-5 mr-3" />
             <span>Estadísticas</span>
           </button>
-          <button
-            onClick={() => {
-              setActiveTab('requests');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'requests' ? 'bg-indigo-50 text-indigo-600' : ''
-            }`}
-          >
-            <Mail className="w-5 h-5 mr-3" />
-            <span>Solicitudes</span>
-          </button>
+          
           <button
             onClick={() => {
               setActiveTab('requests');
@@ -682,6 +711,155 @@ const RequestsList = ({ requests, areas, students, onApprove, onReject }) => {
               )}
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Update TasksList component
+const TasksList = ({ tasks, admins }) => {
+  const [filter, setFilter] = useState('all');
+  const [selectedAdmin, setSelectedAdmin] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTask, setSelectedTask] = useState(null);
+
+  const filteredTasks = tasks.filter(task => {
+    const matchesFilter = filter === 'all' || task.status === filter;
+    const matchesAdmin = selectedAdmin === 'all' || task.admin_id === selectedAdmin;
+    const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         task.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesFilter && matchesAdmin && matchesSearch;
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Buscar tareas..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          />
+          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        </div>
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        >
+          <option value="all">Todos los estados</option>
+          <option value="pending">Pendientes</option>
+          <option value="submitted">Enviadas</option>
+          <option value="approved">Aprobadas</option>
+        </select>
+        <select
+          value={selectedAdmin}
+          onChange={(e) => setSelectedAdmin(e.target.value)}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        >
+          <option value="all">Todos los administradores</option>
+          {admins.map(admin => (
+            <option key={admin.id} value={admin.id}>
+              {admin.full_name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredTasks.map(task => (
+          <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
+            <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
+              <div className="relative group flex-1 min-w-0">
+                <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate" title={task.title}>
+                  {task.title}
+                </h3>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
+                task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
+                task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
+                'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
+              }`}>
+                {task.status === 'approved' ? 'Aprobada' :
+                 task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+              </span>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
+            <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
+              <div className="flex items-center">
+                <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                <span className="break-words">Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
+              </div>
+              <div className="flex items-center">
+                <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                <span className="break-words">{task.required_hours} horas requeridas</span>
+              </div>
+              <div className="flex items-center">
+                <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                <span className="break-words">
+                  Asignado a: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.student?.full_name || 'Sin asignar'}</span>
+                </span>
+              </div>
+              <div className="flex items-center">
+                <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                <span className="break-words">
+                  Administrador: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.admin?.full_name || 'Sin asignar'}</span>
+                </span>
+              </div>
+            </div>
+            {(task.status === 'submitted' || task.status === 'approved') && (
+              <button
+                onClick={() => setSelectedTask(task)}
+                className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
+                  task.status === 'approved' 
+                    ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
+                    : 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800'
+                }`}
+              >
+                Ver Evidencia
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Evidence Modal */}
+      {selectedTask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Revisión de Evidencia</h2>
+              <button
+                onClick={() => setSelectedTask(null)}
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+             
+              <div>
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Horas dedicadas:</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+                  {selectedTask.evidences?.[0]?.hours_spent || selectedTask.required_hours} horas
+                </p>
+              </div>
+              {selectedTask.evidence_pdf_url && (
+                <a
+                  href={selectedTask.evidence_pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
+                >
+                  <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                  Ver PDF
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

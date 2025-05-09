@@ -348,6 +348,44 @@ const StudentDashboard = () => {
           ))}
         </nav>
 
+        {/* Add ProgressCard here */}
+        {userData && (
+          <div className="px-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow p-4 my-4 w-full flex flex-col items-center border border-indigo-100 dark:border-gray-700">
+              <h2 className="text-base font-semibold mb-2 text-center text-indigo-700 dark:text-indigo-400">
+                Progreso de Horas
+              </h2>
+              <div className="w-full">
+                <div className="flex mb-2 items-center justify-between">
+                  <span className={`text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-white ${isCompleted ? 'bg-green-600' : 'bg-indigo-600'}`}
+                  >
+                    {isCompleted ? 'COMPLETADO' : 'Progreso'}
+                  </span>
+                  <span className={`text-xs font-semibold inline-block ${isCompleted ? 'text-green-700 dark:text-green-400' : 'text-indigo-600 dark:text-indigo-400'}`}
+                    style={{ marginLeft: '0.5rem', marginRight: '0' }}>
+                    {userData.current_hours} / {userData.hours_required} horas
+                  </span>
+                </div>
+                <div className="overflow-hidden h-2 mb-2 text-xs flex rounded bg-gray-200 dark:bg-gray-700">
+                  <div
+                    style={{ width: `${Math.min(100, progress)}%` }}
+                    className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${isCompleted ? 'bg-green-600' : progressColor}`}
+                  ></div>
+                </div>
+                <div className={`text-xs text-center font-semibold ${isCompleted ? 'text-green-700 dark:text-green-400' : 'text-indigo-700 dark:text-indigo-400'}`}
+                >
+                  {`${Math.round(progress)}% completado`}
+                </div>
+                {isCompleted && (
+                  <div className="text-xs text-center text-green-700 dark:text-green-400 mt-1 font-semibold">
+                    ¡Has completado tus horas!
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Menú de usuario y ThemeToggle al fondo */}
 <div className="mt-auto p-2 sm:p-4 border-t border-indigo-100 dark:border-gray-800 flex flex-col gap-4">
   <div className="flex items-center gap-2">
