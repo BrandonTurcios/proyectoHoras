@@ -65,11 +65,14 @@ const Login = () => {
   // Detectar el rol automáticamente según el correo
   useEffect(() => {
     if (!isLogin && formData.email) {
-      setFormData(prev => ({ ...prev, role: 'admin' }));
-      setFormData(prev => ({ ...prev, role: 'admin' }));
+      const emailDomain = formData.email.split('@')[1];
+      if (emailDomain === 'unitec.edu.hn') {
+        setFormData(prev => ({ ...prev, role: 'admin' }));
+      } else if (emailDomain === 'unitec.edu') {
+        setFormData(prev => ({ ...prev, role: 'student' }));
+      }
     }
   }, [formData.email, isLogin]);
-
   // En tu componente de Login
   useEffect(() => {
     const handleLogoutRedirect = async () => {
@@ -177,7 +180,10 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading) return;
-    
+    if (!isLogin && !validateEmail(formData.email)) {
+      showNotification('error', 'Solo se permiten correos @unitec.edu o @unitec.edu.hn');
+      return;
+    }// Permitir cualquier email temporalmente
     // Validación inicial
     if (!isFormValid()) {
       showNotification('error', isLogin 
@@ -263,7 +269,15 @@ const Login = () => {
     }
   };
 
-  const validateEmail = () => true; // Permitir cualquier email temporalmente
+  const validateEmail = (email) => {
+    if (!email) return false;
+    const validDomains = ['unitec.edu', 'unitec.edu.hn'];
+    const domain = email.split('@')[1];
+    return validDomains.includes(domain);
+  };
+  
+  // Y en el handleSubmit, agregar esta validación al inicio:
+ 
  
 
   return (
@@ -378,7 +392,7 @@ const Login = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-bold text-indigo-700 mb-1">Rol asignado automáticamente</label>
+                    <label className="block text-sm font-bold text-indigo-700 mb-1">Tipo de usuario</label>
                     <div className="px-3 py-2 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 font-semibold">
                       {formData.role === 'admin' ? 'Administrador' : 'Estudiante'}
                     </div>
