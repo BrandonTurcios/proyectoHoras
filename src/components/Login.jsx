@@ -66,7 +66,7 @@ const Login = () => {
   useEffect(() => {
     if (!isLogin && formData.email) {
       const emailDomain = formData.email.split('@')[1];
-      if (emailDomain === 'unitec.edu.hn') {
+      if (emailDomain === '@unitec.edu.hn') {
         setFormData(prev => ({ ...prev, role: 'admin' }));
       } else if (emailDomain === 'unitec.edu') {
         setFormData(prev => ({ ...prev, role: 'student' }));

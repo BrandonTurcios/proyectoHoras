@@ -390,11 +390,7 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) 
                 <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-indigo-700">
                   {student.current_hours} de {student.hours_required} horas completadas
                 </div>
-                {areas && (
-                  <div className="mt-1 text-xs text-gray-500">
-                    Área: {areaName || student.internship_area || 'Sin área'}
-                  </div>
-                )}
+               
                 {areas && (
                   <div className="mt-1 text-xs text-gray-500">
                     Área: {areaName || student.internship_area || 'Sin área'}
