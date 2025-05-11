@@ -71,7 +71,21 @@ const TaskEvidence = ({ task, onClose }) => {
         }
       }
 
-      // Prepare the evidence data
+      // Insert evidence into the evidences table
+      const { error: evidenceError } = await supabase
+        .from('evidences')
+        .insert([
+          {
+            task_id: task.id,
+            student_id: task.student_id,
+            description: description,
+            hours_spent: hoursSpent,
+            submitted_at: new Date().toISOString(),
+          }
+        ]);
+      if (evidenceError) throw evidenceError;
+
+      // Prepare the evidence data for Power Automate
       const evidenceData = {
         task_id: String(task.id), // string
         task_title: task.title,
@@ -82,9 +96,6 @@ const TaskEvidence = ({ task, onClose }) => {
         student_name: studentName,
         due_date: String(task.due_date)
       };
-
-      console.log('Task data:', task); // Para debug
-      console.log('Evidence data:', evidenceData); // Para debug
 
       // Send the data to your Power Automate endpoint
       const response = await fetch('https://prod-148.westus.logic.azure.com:443/workflows/208cb434a6f149c0a7876ca39bd47d3a/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Itcc8LBKesxQFeqFwYRjsGDNuocdP4gCKmv66nyyNTU', {

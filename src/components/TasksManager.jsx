@@ -233,40 +233,131 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
                 <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">{showEvidenceModal.evidences?.[0]?.description || 'No hay descripción disponible'}</p>
               </div>
               <div>
-                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Horas dedicadas:</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">{showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours} horas</p>
+                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 mb-2">Horas dedicadas:</h3>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {/* Pill button: horas dedicadas */}
+                  <button
+                    type="button"
+                    className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
+                      ${showEvidenceModal._horasOption === 'dedicadas'
+                        ? 'bg-indigo-600 text-white border-indigo-700 shadow'
+                        : 'bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-200 border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-800'}`}
+                    onClick={() => setShowEvidenceModal({
+                      ...showEvidenceModal,
+                      _horasOption: 'dedicadas',
+                      _adminHours: showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours
+                    })}
+                  >
+                    <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center
+                      "
+                      style={{
+                        borderColor: showEvidenceModal._horasOption === 'dedicadas' ? '#6366f1' : '#cbd5e1',
+                        background: showEvidenceModal._horasOption === 'dedicadas' ? '#6366f1' : 'transparent'
+                      }}
+                    >
+                      {showEvidenceModal._horasOption === 'dedicadas' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
+                    </span>
+                    Usar horas dedicadas por el alumno ({showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours} horas)
+                  </button>
+                  {/* Pill button: horas requeridas */}
+                  <button
+                    type="button"
+                    className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
+                      ${showEvidenceModal._horasOption === 'requeridas'
+                        ? 'bg-green-600 text-white border-green-700 shadow'
+                        : 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-200 border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-800'}`}
+                    onClick={() => setShowEvidenceModal({
+                      ...showEvidenceModal,
+                      _horasOption: 'requeridas',
+                      _adminHours: showEvidenceModal.required_hours
+                    })}
+                  >
+                    <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center"
+                      style={{
+                        borderColor: showEvidenceModal._horasOption === 'requeridas' ? '#22c55e' : '#cbd5e1',
+                        background: showEvidenceModal._horasOption === 'requeridas' ? '#22c55e' : 'transparent'
+                      }}
+                    >
+                      {showEvidenceModal._horasOption === 'requeridas' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
+                    </span>
+                    Usar horas requeridas de la tarea ({showEvidenceModal.required_hours} horas)
+                  </button>
+                  {/* Pill button: otro */}
+                  <button
+                    type="button"
+                    className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
+                      ${showEvidenceModal._horasOption === 'otro'
+                        ? 'bg-yellow-400 text-yellow-900 border-yellow-500 shadow'
+                        : 'bg-white dark:bg-gray-700 text-yellow-700 dark:text-yellow-200 border-gray-300 dark:border-gray-600 hover:bg-yellow-50 dark:hover:bg-gray-800'}`}
+                    onClick={() => setShowEvidenceModal({
+                      ...showEvidenceModal,
+                      _horasOption: 'otro',
+                      _adminHours: showEvidenceModal._adminHours || showEvidenceModal.required_hours
+                    })}
+                  >
+                    <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center"
+                      style={{
+                        borderColor: showEvidenceModal._horasOption === 'otro' ? '#facc15' : '#cbd5e1',
+                        background: showEvidenceModal._horasOption === 'otro' ? '#facc15' : 'transparent'
+                      }}
+                    >
+                      {showEvidenceModal._horasOption === 'otro' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
+                    </span>
+                    Otro:
+                    <input
+                      type="number"
+                      min="1"
+                      className={`ml-2 w-20 border rounded-lg px-2 py-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-colors ${showEvidenceModal._horasOption === 'otro' ? 'border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                      value={showEvidenceModal._adminHours !== undefined ? showEvidenceModal._adminHours : showEvidenceModal.required_hours}
+                      onChange={e => setShowEvidenceModal({
+                        ...showEvidenceModal,
+                        _horasOption: 'otro',
+                        _adminHours: Number(e.target.value)
+                      })}
+                      disabled={showEvidenceModal._horasOption !== 'otro'}
+                    />
+                    <span className="ml-1 text-yellow-900 dark:text-yellow-200 text-sm">horas</span>
+                  </button>
+                </div>
               </div>
-              {showEvidenceModal.evidence_pdf_url && (
-                <a
-                  href={showEvidenceModal.evidence_pdf_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base"
-                >
-                  <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                  Ver PDF
-                </a>
-              )}
-              {showEvidenceModal.status !== 'approved' && (
-                <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-6">
-                  <button
-                    onClick={() => handleRejectEvidence(showEvidenceModal.id)}
-                    className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 w-full sm:w-auto text-sm sm:text-base"
-                  >
-                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                    Rechazar
-                  </button>
-                  <button
-                    onClick={() => handleApproveEvidence(
-                      showEvidenceModal.id,
-                      showEvidenceModal.evidences?.[0]?.id,
-                      showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours
-                    )}
-                    className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
-                  >
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                    Aprobar
-                  </button>
+              {/* Botones de acción y Ver PDF alineados a izquierda y derecha */}
+              {(showEvidenceModal.status !== 'approved' || showEvidenceModal.evidence_pdf_url) && (
+                <div className="flex flex-col sm:flex-row sm:items-end mt-4 sm:mt-6">
+                  {showEvidenceModal.evidence_pdf_url && (
+                    <div className="flex-1 flex justify-start mb-2 sm:mb-0">
+                      <a
+                        href={showEvidenceModal.evidence_pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base w-full sm:w-auto justify-center"
+                      >
+                        <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                        Ver PDF
+                      </a>
+                    </div>
+                  )}
+                  {showEvidenceModal.status !== 'approved' && (
+                    <div className="flex-1 flex justify-end space-x-2">
+                      <button
+                        onClick={() => handleRejectEvidence(showEvidenceModal.id)}
+                        className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 w-full sm:w-auto text-sm sm:text-base"
+                      >
+                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                        Rechazar
+                      </button>
+                      <button
+                        onClick={() => handleApproveEvidence(
+                          showEvidenceModal.id,
+                          showEvidenceModal.evidences?.[0]?.id,
+                          showEvidenceModal._adminHours !== undefined ? showEvidenceModal._adminHours : (showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours)
+                        )}
+                        className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
+                      >
+                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                        Aprobar
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
