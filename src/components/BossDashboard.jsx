@@ -788,7 +788,7 @@ const TasksList = ({ tasks, admins }) => {
               </span>
             </div>
             <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
-            <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
+            <div className="space-y-3 text-xs sm:text-sm mt-auto">
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
                 <span className="break-words">Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
@@ -797,17 +797,25 @@ const TasksList = ({ tasks, admins }) => {
                 <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
                 <span className="break-words">{task.required_hours} horas requeridas</span>
               </div>
-              <div className="flex items-center">
-                <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">
-                  Asignado a: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.student?.full_name || 'Sin asignar'}</span>
-                </span>
-              </div>
-              <div className="flex items-center">
-                <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">
-                  Administrador: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.admin?.full_name || 'Sin asignar'}</span>
-                </span>
+              <div className="bg-indigo-100/80 dark:bg-indigo-900/30 p-3 rounded-lg border-2 border-indigo-200 dark:border-indigo-800 shadow-sm">
+                <div className="flex items-center mb-2">
+                  <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-indigo-700 dark:text-indigo-300 font-medium">Asignación</span>
+                </div>
+                <div className="space-y-2 pl-6">
+                  <div className="flex items-center">
+                    <span className="text-gray-700 dark:text-gray-400">Estudiante:</span>
+                    <span className="ml-2 font-semibold text-indigo-800 dark:text-indigo-300">
+                      {task.student?.full_name || 'Sin asignar'}
+                    </span>
+                  </div>
+                  <div className="flex items-center">
+                    <span className="text-gray-700 dark:text-gray-400">Administrador:</span>
+                    <span className="ml-2 font-semibold text-indigo-800 dark:text-indigo-300">
+                      {task.admin?.full_name || 'Sin asignar'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
             {(task.status === 'submitted' || task.status === 'approved') && (

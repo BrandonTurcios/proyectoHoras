@@ -8,7 +8,8 @@ const supabaseConfig = {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storage: localStorage
     },
     // Agregar retry logic
     global: {
