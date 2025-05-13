@@ -2,9 +2,12 @@
 import React, { useState,useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, UserPlus, LogIn, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
 import { supabase } from '../lib/supabase'; // Ajusta la ruta según tu estructura
 import ThemeToggle from './ThemeToggle';
+import fondoLIGHT from '/fondoLIGHT.webp';
+import fondoDARK from '/fondoDARK.webp';
 
 const Notification = ({ type, message, onClose }) => {
   const isError = type === 'error';
@@ -53,6 +56,8 @@ const Login = () => {
   });
 
   const [areas, setAreas] = useState([]);
+
+  const { isDarkMode } = useTheme();
 
   useEffect(() => {
     const fetchAreas = async () => {
@@ -281,11 +286,24 @@ const Login = () => {
  
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-100 via-white to-indigo-200 p-4">
-      <div className="absolute top-4 right-4">
+    <div
+      className="min-h-screen flex items-center justify-center relative p-4"
+      style={{
+        backgroundImage: `url(${isDarkMode ? fondoDARK : fondoLIGHT})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        transition: 'background-image 0.5s',
+      }}
+    >
+      {/* Overlay para mejorar legibilidad */}
+      <div className="fixed inset-0 z-0" style={{background: isDarkMode ? 'rgba(10,18,50,0.70)' : 'rgba(255,255,255,0.25)'}} />
+      <div className="absolute top-4 right-4 z-10">
         <ThemeToggle />
       </div>
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md z-10">
+        {/* Título principal */}
+        <h1 className="text-5xl font-extrabold text-center mb-8 text-indigo-800 dark:text-indigo-200 drop-shadow-lg">titulo largo test123456789</h1>
         {notification && (
           <Notification
             type={notification.type}
@@ -295,7 +313,7 @@ const Login = () => {
         )}
         <div className="max-w-md w-full space-y-8 bg-white/90 dark:bg-gray-900/90 p-8 rounded-2xl shadow-2xl">
           <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-indigo-700 drop-shadow-sm">
+            <h2 className="mt-6 text-center text-2xl font-extrabold text-indigo-700 drop-shadow-sm">
               {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </h2>
             <p className="mt-2 text-center text-base text-indigo-500">
