@@ -37,11 +37,12 @@ const BossDashboard = () => {
   const [isEditAreaModalOpen, setIsEditAreaModalOpen] = useState(false);
   const [selectedArea, setSelectedArea] = useState(null);
   const [newArea, setNewArea] = useState({
-    name: '',
-    description: ''
+    name: ''
   });
   const [requests, setRequests] = useState([]);
   const [students, setStudents] = useState([]);
+  const [areaToDelete, setAreaToDelete] = useState(null);
+  const [isDeleteAreaModalOpen, setIsDeleteAreaModalOpen] = useState(false);
  
 
   const { userData, signOut } = useAuth();
@@ -198,6 +199,36 @@ const BossDashboard = () => {
     }
   };
 
+  const handleAddArea = async (e) => {
+    e.preventDefault();
+    try {
+      const { data, error } = await supabase
+        .from('areas')
+        .insert([{ name: newArea.name }]);
+      if (error) throw error;
+      setIsAddAreaModalOpen(false);
+      setNewArea({ name: '' });
+      await fetchAreas();
+    } catch (error) {
+      console.error('Error agregando área:', error);
+    }
+  };
+
+  const handleDeleteArea = async () => {
+    if (!areaToDelete) return;
+    try {
+      const { error } = await supabase
+        .from('areas')
+        .delete()
+        .eq('id', areaToDelete.id);
+      if (error) throw error;
+      setIsDeleteAreaModalOpen(false);
+      setAreaToDelete(null);
+      await fetchAreas();
+    } catch (error) {
+      console.error('Error eliminando área:', error);
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -205,7 +236,7 @@ const BossDashboard = () => {
         return <AdminsList admins={admins} areas={areas} onAssignArea={handleAssignArea} />;
        
       case 'areas':
-        return <AreasList areas={areas} />;
+        return <AreasList areas={areas} setIsAddAreaModalOpen={setIsAddAreaModalOpen} setAreaToDelete={setAreaToDelete} setIsDeleteAreaModalOpen={setIsDeleteAreaModalOpen} />;
         
       case 'statistics':
         return <Statistics admins={admins} areas={areas} />;
@@ -417,33 +448,24 @@ const BossDashboard = () => {
       {/* Add Area Modal */}
       {isAddAreaModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-indigo-700 mb-4">Agregar Nueva Área</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-indigo-700 dark:text-indigo-200 mb-4">Agregar Nueva Área</h3>
             <form onSubmit={handleAddArea}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre del Área</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Nombre del Área</label>
                 <input
                   type="text"
                   value={newArea.name}
                   onChange={(e) => setNewArea({ ...newArea, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <textarea
-                  value={newArea.description}
-                  onChange={(e) => setNewArea({ ...newArea, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  rows="3"
                 />
               </div>
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsAddAreaModalOpen(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
                 >
                   Cancelar
                 </button>
@@ -507,6 +529,32 @@ const BossDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Modal de confirmación para eliminar área */}
+      {isDeleteAreaModalOpen && areaToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-red-700 dark:text-red-300 mb-4">Eliminar Área</h3>
+            <p className="mb-4 text-gray-700 dark:text-gray-200">¿Estás seguro de que deseas eliminar el área <span className="font-bold">{areaToDelete.name}</span>? Esta acción no se puede deshacer y eliminará todo lo relacionado.</p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => { setIsDeleteAreaModalOpen(false); setAreaToDelete(null); }}
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteArea}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -563,17 +611,30 @@ const AdminsList = ({ admins, areas, onAssignArea }) => {
 };
 
 // Componente de lista de áreas (solo muestra las dummy)
-const AreasList = ({ areas }) => {
+const AreasList = ({ areas, setIsAddAreaModalOpen, setAreaToDelete, setIsDeleteAreaModalOpen }) => {
+  const sortedAreas = [...areas].sort((a, b) => a.name.localeCompare(b.name));
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-indigo-700">Áreas de Trabajo</h2>
+        <h2 className="text-xl font-bold text-indigo-700 dark:text-indigo-200">Áreas de Trabajo</h2>
+        <button
+          onClick={() => setIsAddAreaModalOpen(true)}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+        >
+          Agregar Área
+        </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {areas.map(area => (
-          <div key={area.id} className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
-            <h3 className="font-bold text-lg text-indigo-800 mb-1">{area.name}</h3>
-            <p className="text-gray-600">ID: {area.id}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+        {sortedAreas.map(area => (
+          <div key={area.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-indigo-100 dark:border-indigo-700 min-h-[70px] flex flex-col justify-center transition-colors relative group">
+            <h3 className="font-bold text-base text-indigo-800 dark:text-indigo-200 mb-1 break-words">{area.name}</h3>
+            <button
+              title="Eliminar área"
+              onClick={() => { setAreaToDelete(area); setIsDeleteAreaModalOpen(true); }}
+              className="absolute top-2 right-2 p-1 rounded-full bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-700 text-red-600 dark:text-red-300 transition-opacity opacity-80 group-hover:opacity-100"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         ))}
       </div>
