@@ -45,11 +45,39 @@ const TaskEvidence = ({ task, onClose }) => {
     setError(null);
 
     try {
-      // Convert images to base64
-      const imageBase64Promises = images.map(image => {
+      // Compress and convert images to base64
+      const imageBase64Promises = images.map(async (image) => {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width;
+              let height = img.height;
+              
+              // Calculate new dimensions while maintaining aspect ratio
+              const maxDimension = 1200; // Maximum dimension for either width or height
+              if (width > height && width > maxDimension) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else if (height > maxDimension) {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+
+              canvas.width = width;
+              canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, width, height);
+              
+              // Convert to base64 with reduced quality
+              const base64 = canvas.toDataURL('image/jpeg', 0.7);
+              resolve(base64);
+            };
+            img.onerror = reject;
+            img.src = e.target.result;
+          };
           reader.onerror = reject;
           reader.readAsDataURL(image);
         });
@@ -87,11 +115,11 @@ const TaskEvidence = ({ task, onClose }) => {
 
       // Prepare the evidence data for Power Automate
       const evidenceData = {
-        task_id: String(task.id), // string
+        task_id: String(task.id),
         task_title: task.title,
         task_description: task.description,
         evidence_description: description,
-        hours_spent: hoursSpent, // integer
+        hours_spent: hoursSpent,
         images: imageBase64s,
         student_name: studentName,
         due_date: String(task.due_date)
@@ -134,7 +162,7 @@ const TaskEvidence = ({ task, onClose }) => {
         .from('tasks')
         .update({ 
           status: 'submitted',
-          evidence_pdf_url: result.pdfUrl // Store the PDF URL returned from Power Automate
+          evidence_pdf_url: result.pdfUrl
         })
         .eq('id', task.id);
 

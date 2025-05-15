@@ -251,47 +251,53 @@ const BossDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-indigo-200 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-xl bg-white dark:bg-gray-900 shadow-lg sm:hidden border border-indigo-100 dark:border-gray-800"
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* Botón del menú fuera del contenedor principal, solo visible cuando el sidebar está cerrado */}
+      {!isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="fixed top-4 left-4 z-[60] p-2 rounded bg-white dark:bg-gray-900 shadow-lg sm:hidden border border-indigo-100 dark:border-gray-800"
         >
-          {isSidebarOpen ? (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          ) : (
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
               d="M4 6h16M4 12h16M4 18h16"
             />
-          )}
-        </svg>
-      </button>
+          </svg>
+        </button>
+      )}
 
       {/* Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[55] sm:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div className={`fixed w-64 h-full bg-white/90 dark:bg-gray-900/95 shadow-2xl flex flex-col transition-all duration-300 z-40 rounded-r-3xl border-r border-indigo-100 dark:border-gray-800 ${
+      <div className={`fixed w-64 h-full bg-white/90 dark:bg-gray-900/95 shadow-2xl flex flex-col transition-all duration-300 z-[60] rounded-r-3xl border-r border-indigo-100 dark:border-gray-800 ${
         isSidebarOpen ? 'left-0' : '-left-64 sm:left-0'
       }`}>
+        {/* Botón cerrar sidebar en móvil, cuadrado */}
+        {isSidebarOpen && (
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="absolute top-1/2 right-[-20px] transform -translate-y-1/2 z-50 bg-white/90 dark:bg-gray-900/95 border border-indigo-100 dark:border-gray-800 rounded p-2 shadow-lg sm:hidden"
+            aria-label="Cerrar menú"
+            type="button"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
         <div className="p-2 sm:p-6">
           <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm">Panel de Jefe</h2>
           <p className="text-xs sm:text-sm text-indigo-500 dark:text-indigo-400">Gestión de Áreas</p>
@@ -429,14 +435,11 @@ const BossDashboard = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h1 className="text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm">Panel de Jefe</h1>
-              <div className="flex items-center gap-4">
-                <span className="hidden sm:inline-block text-indigo-500 dark:text-indigo-400 font-semibold text-lg">{userData?.full_name || 'Jefe'}</span>
-                <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                  <User className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-              </div>
+            {/* Header solo con texto centrado */}
+            <div className="flex justify-center mt-4 mb-6">
+              <h1 className="text-xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm text-center">
+                Panel de Jefe
+              </h1>
             </div>
             <div className="bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl p-4 sm:p-8">
               {renderContent()}
@@ -616,7 +619,7 @@ const AreasList = ({ areas, setIsAddAreaModalOpen, setAreaToDelete, setIsDeleteA
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-xl font-bold text-indigo-700 dark:text-indigo-200">Áreas de Trabajo</h2>
+        <h2 className="text-xl font-bold text-indigo-700 dark:text-indigo-200">Áreas de Pasantía</h2>
         <button
           onClick={() => setIsAddAreaModalOpen(true)}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
@@ -785,6 +788,14 @@ const TasksList = ({ tasks, admins }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
 
+  const isTaskOverdue = (dueDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const taskDueDate = new Date(dueDate);
+    taskDueDate.setHours(0, 0, 0, 0);
+    return today > taskDueDate;
+  };
+
   const filteredTasks = tasks.filter(task => {
     const matchesFilter = filter === 'all' || task.status === filter;
     const matchesAdmin = selectedAdmin === 'all' || task.admin_id === selectedAdmin;
@@ -839,14 +850,21 @@ const TasksList = ({ tasks, admins }) => {
                   {task.title}
                 </h3>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
-                task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
-                task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
-                'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
-              }`}>
-                {task.status === 'approved' ? 'Aprobada' :
-                 task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
-              </span>
+              <div className="flex flex-wrap gap-2">
+                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
+                  task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
+                  task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
+                  'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
+                }`}>
+                  {task.status === 'approved' ? 'Aprobada' :
+                   task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+                </span>
+                {isTaskOverdue(task.due_date) && task.status === 'pending' && (
+                  <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white">
+                    Atrasada
+                  </span>
+                )}
+              </div>
             </div>
             <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
             <div className="space-y-3 text-xs sm:text-sm mt-auto">

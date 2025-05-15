@@ -20,19 +20,19 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, submitted, approved
-  const [selectedSpace, setSelectedSpace] = useState('all'); // all, labs, general
   const [selectedStudent, setSelectedStudent] = useState('all'); // all or student id
   const { userData } = useAuth();
 
-  const spaces = [
-    { id: 'all', name: 'Todos los espacios' },
-    { id: 'labs', name: 'Laboratorios' },
-    { id: 'general', name: 'General' }
-  ];
+  const isTaskOverdue = (dueDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const taskDueDate = new Date(dueDate);
+    taskDueDate.setHours(0, 0, 0, 0);
+    return today > taskDueDate;
+  };
 
   const filteredTasks = tasks.filter(task => {
     if (filter !== 'all' && task.status !== filter) return false;
-    if (selectedSpace !== 'all' && task.space !== selectedSpace) return false;
     if (selectedStudent !== 'all' && task.student_id !== selectedStudent) return false;
     return true;
   });
@@ -113,17 +113,6 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
           </select>
           <select
             className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
-            value={selectedSpace}
-            onChange={(e) => setSelectedSpace(e.target.value)}
-          >
-            {spaces.map(space => (
-              <option key={space.id} value={space.id}>
-                {space.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
             value={selectedStudent}
             onChange={(e) => setSelectedStudent(e.target.value)}
           >
@@ -145,70 +134,80 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
       </div>
 
       {/* Tasks Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTasks.map(task => (
-          <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
-            <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
-              <div className="relative group flex-1 min-w-0">
-                <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate cursor-pointer" title={task.title}>
-                  {task.title}
-                </h3>
-                {/* Tooltip visual solo en desktop */}
-                <span className="hidden group-hover:flex absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words"
-                  style={{ pointerEvents: 'none' }}>
-                  {task.title}
-                </span>
+      {filteredTasks.length === 0 ? (
+        <div className="text-gray-500">No hay tareas para mostrar.</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTasks.map(task => (
+            <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
+              <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
+                <div className="relative group flex-1 min-w-0">
+                  <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate cursor-pointer" title={task.title}>
+                    {task.title}
+                  </h3>
+                  {/* Tooltip visual solo en desktop */}
+                  <span className="hidden group-hover:flex absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words"
+                    style={{ pointerEvents: 'none' }}>
+                    {task.title}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
+                    task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white animate-pulse' :
+                    task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
+                    'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
+                  }`} title={
+                    task.status === 'approved' ? 'Aprobada' :
+                    task.status === 'submitted' ? 'Enviada' : 'Pendiente'
+                  }>
+                    {task.status === 'approved' ? 'Aprobada' :
+                     task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+                  </span>
+                  {isTaskOverdue(task.due_date) && task.status === 'pending' && (
+                    <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white">
+                      Atrasada
+                    </span>
+                  )}
+                </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
-                task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white animate-pulse' :
-                task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
-                'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
-              }`} title={
-                task.status === 'approved' ? 'Aprobada' :
-                task.status === 'submitted' ? 'Enviada' : 'Pendiente'
-              }>
-                {task.status === 'approved' ? 'Aprobada' :
-                 task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
-              </span>
+              <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
+              <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                  <span className="break-words">Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                  <span className="break-words">{task.required_hours} horas requeridas</span>
+                </div>
+                <div className="flex items-center">
+                  <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                  <span className="break-words">
+                    Asignado a: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.student?.full_name || 'Sin asignar'}</span>
+                  </span>
+                </div>
+              </div>
+              {(task.status === 'submitted' || task.status === 'approved') && (
+                <button
+                  onClick={() => setShowEvidenceModal(task)}
+                  className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
+                    task.status === 'approved' 
+                      ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
+                      : 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800'
+                  }`}
+                >
+                  Ver Evidencia
+                </button>
+              )}
             </div>
-            <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
-            <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
-              </div>
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">{task.required_hours} horas requeridas</span>
-              </div>
-              <div className="flex items-center">
-                <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">
-                  Asignado a: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.student?.full_name || 'Sin asignar'}</span>
-                </span>
-              </div>
-            </div>
-            {(task.status === 'submitted' || task.status === 'approved') && (
-              <button
-                onClick={() => setShowEvidenceModal(task)}
-                className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
-                  task.status === 'approved' 
-                    ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
-                    : 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800'
-                }`}
-              >
-                Ver Evidencia
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* New Task Modal */}
       {showNewTaskModal && (
         <TaskForm
           students={students}
-          spaces={spaces}
           onSubmit={handleCreateTask}
           onClose={() => setShowNewTaskModal(false)}
         />
@@ -369,11 +368,10 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
 };
 
 // Componente del formulario de tareas
-const TaskForm = ({ students, spaces, onSubmit, onClose }) => {
+const TaskForm = ({ students, onSubmit, onClose }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    space: 'general',
     required_hours: 1,
     due_date: '',
     student_id: '',
@@ -417,22 +415,6 @@ const TaskForm = ({ students, spaces, onSubmit, onClose }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Espacio
-              </label>
-              <select
-                className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-                value={formData.space}
-                onChange={(e) => setFormData({ ...formData, space: e.target.value })}
-              >
-                {spaces.filter(space => space.id !== 'all').map(space => (
-                  <option key={space.id} value={space.id}>
-                    {space.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Horas requeridas
               </label>
               <input
@@ -444,18 +426,18 @@ const TaskForm = ({ students, spaces, onSubmit, onClose }) => {
                 onChange={(e) => setFormData({ ...formData, required_hours: parseInt(e.target.value) })}
               />
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Fecha de entrega
-            </label>
-            <input
-              type="date"
-              required
-              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-              value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Fecha de entrega
+              </label>
+              <input
+                type="date"
+                required
+                className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                value={formData.due_date}
+                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

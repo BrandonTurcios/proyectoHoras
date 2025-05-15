@@ -97,28 +97,36 @@ const StudentSchedule = ({ studentId, onClose, readOnly = false }) => {
               <div key={day} className="text-center">
                 <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-4">{day}</h3>
                 <div className="space-y-2">
-                  {getScheduleForDay(day).map(slot => (
-                    <div
-                      key={slot.id}
-                      className="bg-indigo-50 dark:bg-gray-800 rounded-lg p-2 relative group"
-                    >
-                      <div className="text-sm text-indigo-700 dark:text-indigo-300">
-                        {slot.start_time} - {slot.end_time}
+                  {getScheduleForDay(day).length === 0 ? (
+                    <div className="text-gray-500 text-xs">Sin horarios</div>
+                  ) : (
+                    getScheduleForDay(day).map(slot => (
+                      <div
+                        key={slot.id}
+                        className="bg-indigo-50 dark:bg-gray-800 rounded-lg p-2 relative group"
+                      >
+                        <div className="text-sm text-indigo-700 dark:text-indigo-300">
+                          {slot.start_time} - {slot.end_time}
+                        </div>
+                        {!readOnly && (
+                          <button
+                            onClick={() => handleDeleteTimeSlot(slot.id)}
+                            className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-100 dark:bg-red-900 rounded-full p-1 text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
-                      {!readOnly && (
-                        <button
-                          onClick={() => handleDeleteTimeSlot(slot.id)}
-                          className="absolute top-0 right-0 -mt-2 -mr-2 bg-red-100 dark:bg-red-900 rounded-full p-1 text-red-600 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-800 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             ))}
           </div>
+          {/* Mensaje si no hay ningún horario en toda la semana */}
+          {schedule.length === 0 && (
+            <div className="text-gray-500 text-center my-8">No tienes horarios registrados.</div>
+          )}
         </div>
         {!readOnly && (
           <div className="flex justify-end">

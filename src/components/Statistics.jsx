@@ -90,6 +90,12 @@ const Statistics = ({ students, tasks }) => {
     { name: 'Completado (100%)', value: statistics.progressCategories.completed }
   ];
 
+  if (!students || students.length === 0 || !tasks || tasks.length === 0) {
+    return (
+      <div className="text-gray-500">No hay datos suficientes para mostrar estadísticas.</div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Filtros */}

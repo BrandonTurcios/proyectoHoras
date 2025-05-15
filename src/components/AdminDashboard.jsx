@@ -157,47 +157,53 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-indigo-200 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-xl bg-white dark:bg-gray-900 shadow-lg sm:hidden border border-indigo-100 dark:border-gray-800"
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* Botón del menú fuera del contenedor principal, solo visible cuando el sidebar está cerrado */}
+      {!isSidebarOpen && (
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="fixed top-4 left-4 z-[60] p-2 rounded bg-white dark:bg-gray-900 shadow-lg sm:hidden border border-indigo-100 dark:border-gray-800"
         >
-          {isSidebarOpen ? (
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          ) : (
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
               d="M4 6h16M4 12h16M4 18h16"
             />
-          )}
-        </svg>
-      </button>
+          </svg>
+        </button>
+      )}
 
       {/* Sidebar Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 sm:hidden"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[55] sm:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      <div className={`fixed w-64 h-full bg-white/90 dark:bg-gray-900/95 shadow-2xl flex flex-col transition-all duration-300 z-40 rounded-r-3xl border-r border-indigo-100 dark:border-gray-800 ${
+      <div className={`fixed w-64 h-full bg-white/90 dark:bg-gray-900/95 shadow-2xl flex flex-col transition-all duration-300 z-[60] rounded-r-3xl border-r border-indigo-100 dark:border-gray-800 ${
         isSidebarOpen ? 'left-0' : '-left-64 sm:left-0'
       }`}>
+        {/* Botón cerrar sidebar en móvil, cuadrado */}
+        {isSidebarOpen && (
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="absolute top-1/2 right-[-20px] transform -translate-y-1/2 z-50 bg-white/90 dark:bg-gray-900/95 border border-indigo-100 dark:border-gray-800 rounded p-2 shadow-lg sm:hidden"
+            aria-label="Cerrar menú"
+            type="button"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
         <div className="p-2 sm:p-6">
           <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm">Panel de Control</h2>
           <p className="text-xs sm:text-sm text-indigo-500 dark:text-indigo-400">
@@ -307,7 +313,7 @@ const AdminDashboard = () => {
               </>
             ) : (
               <>
-                <LogOut className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                <LogOut className="w-3 h-3 sm:w-4 sm:w-4 mr-2" />
                 Cerrar sesión
               </>
             )}
@@ -327,14 +333,11 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h1 className="text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm">Panel Administrativo</h1>
-              <div className="flex items-center gap-4">
-                <span className="hidden sm:inline-block text-indigo-500 dark:text-indigo-400 font-semibold text-lg">{userData?.full_name || 'Administrador'}</span>
-                <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                  <User className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                </div>
-              </div>
+            {/* Header solo con texto centrado */}
+            <div className="flex justify-center mt-4 mb-6">
+              <h1 className="text-xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm text-center">
+                Panel Administrativo
+              </h1>
             </div>
             <div className="bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl p-4 sm:p-8">
               {renderContent()}
@@ -363,55 +366,59 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) 
       return 0;
     });
 
-    return (
-      
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredStudents.map(student => {
-          const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
-          return (
-            <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
-              <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
-              <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
-              <div className="mt-3 sm:mt-4">
-                <div className="flex justify-between mb-1">
-                  <span className="text-xs sm:text-sm font-medium text-indigo-700">Progreso de horas</span>
-                  <span className="text-xs sm:text-sm font-bold text-indigo-700">
-                    {Math.round(student.current_hours / student.hours_required * 100)}%
-                  </span>
-                </div>
-                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
-                  <div
-                    style={{ width: `${Math.min(100, (student.current_hours / student.hours_required) * 100)}%` }}
-                    className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
-                      (student.current_hours / student.hours_required) * 100 >= 100 ? 'bg-green-500' : 'bg-indigo-400'
-                    }`}
-                  ></div>
-                </div>
-                <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-indigo-700">
-                  {student.current_hours} de {student.hours_required} horas completadas
-                </div>
-               
-                {areas && (
-                  <div className="mt-1 text-xs text-gray-500">
-                    Área: {areaName || student.internship_area || 'Sin área'}
-                  </div>
-                )}
+  if (!filteredStudents.length) {
+    return <div className="text-gray-500">No hay estudiantes para mostrar.</div>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {filteredStudents.map(student => {
+        const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
+        const isCompleted = student.current_hours >= student.hours_required;
+        const progress = (student.current_hours / student.hours_required) * 100;
+        const progressColor = isCompleted ? 'bg-green-500' : 'bg-indigo-400';
+        
+        return (
+          <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
+            <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
+            <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
+            <div className="mt-3 sm:mt-4">
+              <div className="flex justify-between mb-1">
+                <span className={`text-xs sm:text-sm font-medium ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                  {isCompleted ? 'COMPLETADO' : 'Progreso de horas'}
+                </span>
+                <span className={`text-xs sm:text-sm font-bold ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                  {Math.round(progress)}%
+                </span>
               </div>
-              {showScheduleOption && (
-                <button
-                  className="mt-3 sm:mt-4 w-full bg-indigo-600 text-white py-2 rounded-xl hover:bg-indigo-700 text-sm sm:text-base font-semibold shadow"
-                  onClick={() => onSelectStudent(student.id)}
-                >
-                  Ver horario
-                </button>
+              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                <div
+                  style={{ width: `${Math.min(100, progress)}%` }}
+                  className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${progressColor}`}
+                ></div>
+              </div>
+              <div className={`mt-1 sm:mt-2 text-xs sm:text-sm ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                {student.current_hours} de {student.hours_required} horas completadas
+              </div>
+              {isCompleted && (
+                <div className="text-xs sm:text-sm text-green-700 mt-1 font-semibold">
+                  ¡Horas completadas!
+                </div>
               )}
             </div>
-          );
-        })}
-          
-       
-      </div>
-    );
-  };
+            {showScheduleOption && (
+              <button
+                className="mt-3 sm:mt-4 w-full bg-indigo-600 text-white py-2 rounded-xl hover:bg-indigo-700 text-sm sm:text-base font-semibold shadow"
+                onClick={() => onSelectStudent(student.id)}
+              >
+                Ver horario
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export default AdminDashboard;
