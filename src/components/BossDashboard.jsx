@@ -849,24 +849,36 @@ const TasksList = ({ tasks, admins }) => {
                 <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate" title={task.title}>
                   {task.title}
                 </h3>
+                {/* Tooltip for long titles */}
+                <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                  {task.title}
+              </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
-                  task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
-                  task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
-                  'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
-                }`}>
-                  {task.status === 'approved' ? 'Aprobada' :
-                   task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
-                </span>
+              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
+                task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
+                task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
+                'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
+              }`}>
+                {task.status === 'approved' ? 'Aprobada' :
+                 task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+              </span>
                 {isTaskOverdue(task.due_date) && task.status === 'pending' && (
                   <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white">
                     Atrasada
                   </span>
                 )}
+            </div>
+            </div>
+            <div className="relative group mb-3 sm:mb-4">
+              <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg line-clamp-3" title={task.description}>
+                {task.description}
+              </p>
+              {/* Tooltip for long descriptions */}
+              <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                {task.description}
               </div>
             </div>
-            <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
             <div className="space-y-3 text-xs sm:text-sm mt-auto">
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />

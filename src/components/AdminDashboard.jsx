@@ -9,12 +9,14 @@ import {
   Search,
   ChevronDown, 
   LogOut, 
-  User
+  User,
+  Briefcase
 } from 'lucide-react';
 import TasksManager from './TasksManager';
 import Statistics from './Statistics';
 import StudentSchedule from './StudentSchedule';
 import ThemeToggle from './ThemeToggle';
+import WorkspacesManager from './WorkspacesManager';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('students');
@@ -146,9 +148,10 @@ const AdminDashboard = () => {
             onSelectStudent={(id) => setSelectedStudentId(id)}
             showScheduleOption={true}
             areas={areas}
-           
           />
         );
+      case 'workspaces':
+        return <WorkspacesManager />;
       default:
         return null;
     }
@@ -262,6 +265,18 @@ const AdminDashboard = () => {
           >
             <Calendar className="w-5 h-5 mr-3" />
             <span>Horarios</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('workspaces');
+              setIsSidebarOpen(false);
+            }}
+            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+              activeTab === 'workspaces' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+            }`}
+          >
+            <Briefcase className="w-5 h-5 mr-3" />
+            <span>Espacios de Trabajo</span>
           </button>
         </nav>
 

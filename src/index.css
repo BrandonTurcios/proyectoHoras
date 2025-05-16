@@ -131,3 +131,4 @@
 .transition-colors {
   @apply transition-all duration-200;
 }
+/* En tu CSS global */

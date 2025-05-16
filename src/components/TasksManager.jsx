@@ -1,5 +1,5 @@
 // src/components/TasksManager.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 import { supabase } from '../lib/supabase';
@@ -13,7 +13,8 @@ import {
   ChevronDown,
   Image,
   ExternalLink,
-  X
+  X,
+  Briefcase
 } from 'lucide-react';
 
 const TasksManager = ({ tasks, students, onTaskUpdate }) => {
@@ -38,21 +39,41 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
   });
 
   const handleCreateTask = async (taskData) => {
-    const completeTaskData = {
-      ...taskData,
-      admin_id: userData.id,
-    };
-  
-    const { data, error } = await supabase
-      .from('tasks')
-      .insert([completeTaskData])
-      .select();
-  
-    if (error) {
-      console.error("Error al crear tarea:", error);
-      return;
+    const { student_ids, ...taskBaseData } = taskData;
+    
+    // Si no hay estudiantes seleccionados, crear una tarea sin asignar
+    if (!student_ids || student_ids.length === 0) {
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert([{
+          ...taskBaseData,
+          admin_id: userData.id,
+        }])
+        .select();
+
+      if (error) {
+        console.error("Error al crear tarea:", error);
+        return;
+      }
+    } else {
+      // Crear una tarea para cada estudiante seleccionado
+      const tasksToCreate = student_ids.map(student_id => ({
+        ...taskBaseData,
+        student_id,
+        admin_id: userData.id,
+      }));
+
+      const { data, error } = await supabase
+        .from('tasks')
+        .insert(tasksToCreate)
+        .select();
+
+      if (error) {
+        console.error("Error al crear tareas:", error);
+        return;
+      }
     }
-  
+
     onTaskUpdate();
     setShowNewTaskModal(false);
   };
@@ -94,6 +115,26 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
 
     setShowEvidenceModal(null);
     onTaskUpdate();
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          admin:users!tasks_admin_id_fkey(full_name),
+          student:users!tasks_student_id_fkey(full_name),
+          workspace:workspaces(name),
+          evidences(*)
+        `)
+        .eq('admin_id', userData.id);
+
+      if (error) throw error;
+      if (data) setTasks(data);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    }
   };
 
   return (
@@ -142,14 +183,13 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
             <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
               <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
                 <div className="relative group flex-1 min-w-0">
-                  <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate cursor-pointer" title={task.title}>
+                  <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate" title={task.title}>
                     {task.title}
                   </h3>
-                  {/* Tooltip visual solo en desktop */}
-                  <span className="hidden group-hover:flex absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words"
-                    style={{ pointerEvents: 'none' }}>
+                  {/* Tooltip for long titles */}
+                  <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
                     {task.title}
-                  </span>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
@@ -170,7 +210,15 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
                   )}
                 </div>
               </div>
-              <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg mb-3 sm:mb-4 break-words">{task.description}</p>
+              <div className="relative group mb-3 sm:mb-4">
+                <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg line-clamp-3" title={task.description}>
+                  {task.description}
+                </p>
+                {/* Tooltip for long descriptions */}
+                <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                  {task.description}
+                </div>
+              </div>
               <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
@@ -180,12 +228,21 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
                   <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
                   <span className="break-words">{task.required_hours} horas requeridas</span>
                 </div>
+                
                 <div className="flex items-center">
                   <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
                   <span className="break-words">
                     Asignado a: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.student?.full_name || 'Sin asignar'}</span>
                   </span>
                 </div>
+                {task.workspace && (
+                  <div className="flex items-center">
+                    <Briefcase className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                    <span className="break-words">
+                      Espacio: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.workspace.name}</span>
+                    </span>
+                  </div>
+                )}
               </div>
               {(task.status === 'submitted' || task.status === 'approved') && (
                 <button
@@ -215,8 +272,8 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
 
       {/* Evidence Review Modal */}
       {showEvidenceModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed -inset-6 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 sm:p-8 max-w-3xl w-full max-h-[100vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Revisión de Evidencia</h2>
               <button
@@ -374,9 +431,29 @@ const TaskForm = ({ students, onSubmit, onClose }) => {
     description: '',
     required_hours: 1,
     due_date: '',
-    student_id: '',
+    student_ids: [],
+    workspace_id: '',
     status: 'pending'
   });
+  const [workspaces, setWorkspaces] = useState([]);
+
+  useEffect(() => {
+    fetchWorkspaces();
+  }, []);
+
+  const fetchWorkspaces = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('workspaces')
+        .select('*')
+        .order('id', { ascending: true });
+
+      if (error) throw error;
+      setWorkspaces(data || []);
+    } catch (error) {
+      console.error('Error fetching workspaces:', error);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -384,7 +461,7 @@ const TaskForm = ({ students, onSubmit, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed -inset-6 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Nueva Tarea</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -441,20 +518,44 @@ const TaskForm = ({ students, onSubmit, onClose }) => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Asignar a estudiante (opcional)
+              Espacio de trabajo
             </label>
             <select
               className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-              value={formData.student_id}
-              onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
+              value={formData.workspace_id}
+              onChange={(e) => setFormData({ ...formData, workspace_id: e.target.value })}
             >
-              <option value="">Sin asignar</option>
+              <option value="">Sin espacio de trabajo</option>
+              {workspaces.map(workspace => (
+                <option key={workspace.id} value={workspace.id}>
+                  {workspace.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Asignar a estudiantes
+            </label>
+            <select
+              multiple
+              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+              value={formData.student_ids}
+              onChange={(e) => {
+                const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+                setFormData({ ...formData, student_ids: selectedOptions });
+              }}
+              size="5"
+            >
               {students.map(student => (
                 <option key={student.id} value={student.id}>
                   {student.full_name}
                 </option>
               ))}
             </select>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Mantén presionado Ctrl (Cmd en Mac) para seleccionar múltiples estudiantes
+            </p>
           </div>
           <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-6">
             <button

@@ -14,8 +14,9 @@ import {
   User,
   ListChecks,
   BarChart2,
-  ArrowLeftRight
-
+  ArrowLeftRight,
+  Briefcase,
+  ClipboardList
 } from 'lucide-react';
 import TaskEvidence from './TaskEvidence';
 import StudentSchedule from './StudentSchedule';
@@ -67,8 +68,7 @@ const StudentDashboard = () => {
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .select(`*, evidences (*)`)
-        .select(`*, evidences (*)`)
+        .select(`*, workspaces(name), evidences (*)`)
         .eq('student_id', userData.id)
         .order('due_date', { ascending: true });
       if (error) throw error;
@@ -110,7 +110,17 @@ const StudentDashboard = () => {
     if (taskFilter === 'all') return true;
     return task.status === taskFilter;
   });
-  const visibleTasks = filteredTasks.slice(0, visibleCount);
+
+  // Ordenar: pendientes, luego enviadas, luego completadas, por id ascendente
+  const statusOrder = { pending: 0, submitted: 1, approved: 2 };
+  const orderedTasks = [...filteredTasks].sort((a, b) => {
+    const statusA = statusOrder[a.status] ?? 99;
+    const statusB = statusOrder[b.status] ?? 99;
+    if (statusA !== statusB) return statusA - statusB;
+    return a.id - b.id;
+  });
+
+  const visibleTasks = orderedTasks.slice(0, visibleCount);
 
   // Sidebar area name
   
@@ -167,7 +177,7 @@ const StudentDashboard = () => {
     mainContent = (
       <div className="space-y-6">
         <div className="bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl overflow-hidden">
-          <div className="p-6 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800">
+          <div className="p-6 border-b flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800 mb-2">
             <h2 className="text-xl font-bold text-indigo-800 dark:text-indigo-300 mr-0 sm:mr-4 tracking-tight">Tareas Asignadas</h2>
             <select
               className="border-2 border-indigo-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto focus:ring-2 focus:ring-indigo-400 dark:focus:ring-indigo-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -186,59 +196,81 @@ const StudentDashboard = () => {
                 No tienes tareas asignadas
               </div>
             ) : (
-              visibleTasks.map(task => (
-                <div key={task.id} className="p-6 hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-200 flex items-center gap-2">
-                      <Clock className="w-6 h-6 text-indigo-400 dark:text-indigo-300" />
-                      {task.title}
-                    </h3>
-                    <p className="mt-1 text-base text-gray-700 dark:text-gray-300">
-                      {task.description}
-                    </p>
-                    <div className="mt-2 flex flex-wrap items-center gap-4 text-sm text-indigo-700 dark:text-indigo-400">
-                      <div className="flex items-center">
-                        <Clock className="w-5 h-5 mr-1 text-indigo-400 dark:text-indigo-300" />
-                        {task.required_hours} horas
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {visibleTasks.map(task => (
+                  <div key={task.id} className="p-6 flex flex-col h-full bg-white/90 dark:bg-gray-800/90 rounded-2xl shadow-xl border border-indigo-100 dark:border-gray-700 transition-colors hover:bg-indigo-50 dark:hover:bg-gray-800">
+                    <div className="flex-1 min-w-0 flex flex-col h-full gap-3">
+                      <div className="mb-2">
+                        <div className="relative group mb-1">
+                          <h3 className="text-lg font-semibold text-indigo-900 dark:text-indigo-200 flex items-center gap-2">
+                            <span className="flex-shrink-0">
+                              <ClipboardList className="w-6 h-6 text-indigo-400 dark:text-indigo-300" />
+                            </span>
+                            <span className="truncate min-w-0">{task.title}</span>
+                          </h3>
+                          {/* Tooltip for long titles */}
+                          <div className="hidden group-hover:block absolute left-0 top-full z-50 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                            {task.title}
+                          </div>
+                        </div>
+                        <div className="relative group">
+                          <p className="mt-1 text-base text-gray-700 dark:text-gray-300 line-clamp-3">
+                            {task.description}
+                          </p>
+                          {/* Tooltip for long descriptions */}
+                          <div className="hidden group-hover:block absolute left-0 top-full z-50 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                            {task.description}
+                          </div>
+                        </div>
+                        {task.workspaces && (
+                          <div className="flex items-center mt-3 text-sm text-indigo-700 dark:text-indigo-400 gap-1">
+                            <Briefcase className="w-4 h-4 text-indigo-400 dark:text-indigo-300" />
+                            <span>Espacio: <span className="font-bold">{task.workspaces.name}</span></span>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center">
-                        <Calendar className="w-5 h-5 mr-1 text-indigo-400 dark:text-indigo-300" />
-                        Entregar antes del {new Date(task.due_date).toLocaleDateString()}
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-indigo-700 dark:text-indigo-400 mb-2">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-5 h-5 text-indigo-400 dark:text-indigo-300" />
+                          {task.required_hours} horas
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-5 h-5 text-indigo-400 dark:text-indigo-300" />
+                          Entregar antes del {new Date(task.due_date).toLocaleDateString()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="flex items-center mt-4 md:mt-0">
-                    {task.status === 'approved' ? (
-                      <span className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-gradient-to-r from-green-400 to-green-600 text-white shadow-md animate-pulse">
-                        <CheckCircle className="w-6 h-6 mr-2" />
-                        Completada
-                      </span>
-                    ) : task.status === 'submitted' ? (
-                      <div className="flex flex-wrap gap-2">
-                        <span className="inline-flex items-center px-4 py-2 rounded-full text-base font-semibold bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100 shadow-md">
+                    <div className="mt-4 flex flex-col gap-2">
+                      {task.status === 'approved' ? (
+                        <span className="inline-flex items-center justify-center px-4 py-2 rounded-full text-base font-semibold bg-gradient-to-r from-green-400 to-green-600 text-white shadow-md animate-pulse">
+                          <CheckCircle className="w-6 h-6 mr-2" />
+                          Completada
+                        </span>
+                      ) : task.status === 'submitted' ? (
+                        <span className="inline-flex items-center justify-center px-4 py-2 rounded-full text-base font-semibold bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100 shadow-md">
                           <Clock className="w-6 h-6 mr-2" />
                           En revisión
                         </span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => setSelectedTask(task)}
-                          className="inline-flex items-center px-5 py-2 rounded-full text-base font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg transition-all duration-150"
-                        >
-                          <Upload className="w-6 h-6 mr-2" />
-                          Subir Evidencia
-                        </button>
-                        {isTaskOverdue(task.due_date) && task.status === 'pending' && (
-                          <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white">
-                            Atrasada
-                          </span>
-                        )}
-                      </div>
-                    )}
+                      ) : (
+                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                          <button
+                            onClick={() => setSelectedTask(task)}
+                            className="inline-flex items-center justify-center px-5 py-2 rounded-full text-base font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg transition-all duration-150 w-full sm:w-auto"
+                          >
+                            <Upload className="w-6 h-6 mr-2" />
+                            Subir Evidencia
+                          </button>
+                          {isTaskOverdue(task.due_date) && task.status === 'pending' && (
+                            <span className="inline-flex items-center justify-center px-4 py-2 rounded-full text-base font-semibold bg-gradient-to-r from-red-400 to-red-600 text-white shadow-md w-full sm:w-auto">
+                              Atrasada
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
           {visibleCount < filteredTasks.length && (
