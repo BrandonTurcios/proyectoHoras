@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
-const WorkspacesManager = () => {
+const WorkspacesManager = ({ areaId: propAreaId }) => {
+  const { userData } = useAuth();
+  const areaId = propAreaId || userData?.internship_area;
   const [workspaces, setWorkspaces] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingWorkspace, setEditingWorkspace] = useState(null);
@@ -10,14 +13,15 @@ const WorkspacesManager = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchWorkspaces();
-  }, []);
+    if (areaId) fetchWorkspaces();
+  }, [areaId]);
 
   const fetchWorkspaces = async () => {
     try {
       const { data, error } = await supabase
         .from('workspaces')
         .select('*')
+        .eq('area_id', areaId)
         .order('id', { ascending: true });
 
       if (error) throw error;
@@ -42,7 +46,7 @@ const WorkspacesManager = () => {
       } else {
         const { error } = await supabase
           .from('workspaces')
-          .insert([{ name: workspaceName }]);
+          .insert([{ name: workspaceName, area_id: areaId }]);
 
         if (error) throw error;
       }

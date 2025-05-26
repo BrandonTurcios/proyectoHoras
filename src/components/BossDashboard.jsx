@@ -19,7 +19,8 @@ import {
   Calendar,
   Clock,
   X,
-  ExternalLink
+  ExternalLink,
+  Briefcase
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -132,6 +133,7 @@ const BossDashboard = () => {
           *,
           admin:users!tasks_admin_id_fkey(full_name),
           student:users!tasks_student_id_fkey(full_name),
+          workspace:workspaces!tasks_workspace_id_fkey(id, name),
           evidences(*)
         `);
 
@@ -882,11 +884,15 @@ const TasksList = ({ tasks, admins }) => {
             <div className="space-y-3 text-xs sm:text-sm mt-auto">
               <div className="flex items-center">
                 <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
+                <span className="break-words">Entrega: {task.due_date?.slice(0, 10)}</span>
               </div>
               <div className="flex items-center">
                 <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
                 <span className="break-words">{task.required_hours} horas requeridas</span>
+              </div>
+              <div className="flex items-center">
+                <Briefcase className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                <span className="break-words">Espacio: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.workspace?.name || 'Sin espacio'}</span></span>
               </div>
               <div className="bg-indigo-100/80 dark:bg-indigo-900/30 p-3 rounded-lg border-2 border-indigo-200 dark:border-indigo-800 shadow-sm">
                 <div className="flex items-center mb-2">

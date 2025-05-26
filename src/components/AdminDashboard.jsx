@@ -123,7 +123,7 @@ const AdminDashboard = () => {
         return <StudentsList students={students} areas={areas} />;
        
       case 'tasks':
-        return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} areas={areas} />;
+        return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} areas={areas} areaId={userData?.internship_area} />;
         
       case 'statistics':
         return <Statistics students={students} tasks={tasks} areas={areas} />;
@@ -151,7 +151,7 @@ const AdminDashboard = () => {
           />
         );
       case 'workspaces':
-        return <WorkspacesManager />;
+        return <WorkspacesManager areaId={userData?.internship_area} />;
       default:
         return null;
     }

@@ -14,15 +14,38 @@ import {
   Image,
   ExternalLink,
   X,
-  Briefcase
+  Briefcase,
+  List as ListIcon,
+  LayoutGrid,
+  Upload,
+  Download,
+  Save,
+  AlertCircle
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
-const TasksManager = ({ tasks, students, onTaskUpdate }) => {
+const TasksManager = ({ students, onTaskUpdate, areaId }) => {
+  const [tasks, setTasks] = useState([]);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, submitted, approved
   const [selectedStudent, setSelectedStudent] = useState('all'); // all or student id
   const { userData } = useAuth();
+  const [compactView, setCompactView] = useState(false); // Nueva vista
+  const [importing, setImporting] = useState(false);
+  const [importPreview, setImportPreview] = useState(false);
+  const [previewData, setPreviewData] = useState([]);
+  const [previewErrors, setPreviewErrors] = useState([]);
+
+  useEffect(() => {
+    if (userData?.id) fetchTasks();
+    // eslint-disable-next-line
+  }, [areaId, userData?.id]);
 
   const isTaskOverdue = (dueDate) => {
     const today = new Date();
@@ -125,7 +148,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
           *,
           admin:users!tasks_admin_id_fkey(full_name),
           student:users!tasks_student_id_fkey(full_name),
-          workspace:workspaces(name),
+          workspace:workspaces!tasks_workspace_id_fkey(id, name),
           evidences(*)
         `)
         .eq('admin_id', userData.id);
@@ -137,11 +160,204 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
     }
   };
 
+  const validatePreviewData = (data) => {
+    const errors = [];
+    data.forEach((row, index) => {
+      if (!row.title?.trim()) {
+        errors.push(`Fila ${index + 1}: El título es requerido`);
+      }
+      if (!row.description?.trim()) {
+        errors.push(`Fila ${index + 1}: La descripción es requerida`);
+      }
+      if (!row.required_hours || isNaN(row.required_hours) || row.required_hours < 1) {
+        errors.push(`Fila ${index + 1}: Las horas requeridas deben ser un número positivo`);
+      }
+      if (!row.due_date || !/^\d{4}-\d{2}-\d{2}$/.test(row.due_date)) {
+        errors.push(`Fila ${index + 1}: La fecha debe estar en formato YYYY-MM-DD`);
+      }
+      if (row.student_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.student_email)) {
+        errors.push(`Fila ${index + 1}: El email del estudiante no es válido`);
+      }
+    });
+    return errors;
+  };
+
+  const handleExcelImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          
+          // Convertir los datos al formato correcto
+          const formattedData = jsonData.map(row => {
+            // Asegurar que la fecha esté en formato YYYY-MM-DD
+            let dueDate = row.due_date;
+            if (dueDate) {
+              // Si la fecha viene como número de Excel, convertirla
+              if (typeof dueDate === 'number') {
+                const date = new Date((dueDate - 25569) * 86400 * 1000);
+                dueDate = date.toISOString().split('T')[0];
+              } else if (typeof dueDate === 'string') {
+                // Si es string, asegurarse de que esté en formato YYYY-MM-DD
+                const date = new Date(dueDate);
+                if (!isNaN(date.getTime())) {
+                  dueDate = date.toISOString().split('T')[0];
+                }
+              }
+            }
+
+            return {
+              title: row.title || '',
+              description: row.description || '',
+              required_hours: row.required_hours ? parseInt(row.required_hours) : 1,
+              due_date: dueDate || '',
+              workspace_name: row.workspace_name || '',
+              student_email: row.student_email || ''
+            };
+          });
+
+          const errors = validatePreviewData(formattedData);
+          setPreviewErrors(errors);
+          setPreviewData(formattedData);
+          setImportPreview(true);
+        } catch (error) {
+          console.error('Error processing Excel file:', error);
+          alert('Error al procesar el archivo Excel: ' + error.message);
+        }
+      };
+      reader.onerror = (error) => {
+        console.error('Error reading file:', error);
+        alert('Error al leer el archivo: ' + error.message);
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error('Error in file selection:', error);
+      alert('Error al seleccionar el archivo: ' + error.message);
+    } finally {
+      event.target.value = null;
+    }
+  };
+
+  const handlePreviewEdit = (index, field, value) => {
+    const newData = [...previewData];
+    newData[index] = { ...newData[index], [field]: value };
+    setPreviewData(newData);
+    
+    // Revalidar después de cada edición
+    const errors = validatePreviewData(newData);
+    setPreviewErrors(errors);
+  };
+
+  const handleImportConfirm = async () => {
+    if (previewErrors.length > 0) {
+      alert('Por favor corrige los errores antes de importar');
+      return;
+    }
+
+    setImporting(true);
+    try {
+      for (const row of previewData) {
+        // Usar la fecha directamente del input, que ya está en formato YYYY-MM-DD
+        const dueDate = row.due_date;
+
+        let workspaceId = null;
+        if (row.workspace_name) {
+          const { data: existingWorkspace } = await supabase
+            .from('workspaces')
+            .select('id')
+            .eq('name', row.workspace_name)
+            .eq('area_id', areaId)
+            .single();
+
+          if (existingWorkspace) {
+            workspaceId = existingWorkspace.id;
+          } else {
+            const { data: newWorkspace, error: workspaceError } = await supabase
+              .from('workspaces')
+              .insert([{
+                name: row.workspace_name,
+                area_id: areaId
+              }])
+              .select()
+              .single();
+
+            if (workspaceError) throw workspaceError;
+            workspaceId = newWorkspace.id;
+          }
+        }
+
+        const taskData = {
+          title: row.title,
+          description: row.description,
+          required_hours: Number(row.required_hours) || 1,
+          due_date: dueDate, // Usar la fecha directamente sin transformaciones
+          workspace_id: workspaceId,
+          status: 'pending',
+          admin_id: userData.id
+        };
+
+        if (row.student_email) {
+          const { data: student } = await supabase
+            .from('users')
+            .select('id')
+            .eq('email', row.student_email)
+            .single();
+
+          if (student) {
+            taskData.student_id = student.id;
+          }
+        }
+
+        const { error: taskError } = await supabase
+          .from('tasks')
+          .insert([taskData]);
+
+        if (taskError) throw taskError;
+      }
+
+      setImportPreview(false);
+      onTaskUpdate();
+      setTimeout(() => {
+        alert('Tareas importadas exitosamente');
+      }, 100);
+    } catch (error) {
+      console.error('Error importing tasks:', error);
+      alert('Error al importar las tareas: ' + error.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const downloadTemplate = () => {
+    const template = [
+      {
+        title: 'Título de la tarea',
+        description: 'Descripción detallada de la tarea',
+        required_hours: '2',
+        due_date: '2024-03-20',
+        workspace_name: 'Nombre del espacio de trabajo',
+        student_email: 'email@estudiante.com'
+      }
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+    XLSX.writeFile(wb, 'plantilla_tareas.xlsx');
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto items-stretch">
           <select
             className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
             value={filter}
@@ -164,20 +380,108 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
               </option>
             ))}
           </select>
+          <button
+            onClick={() => setCompactView(v => !v)}
+            className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900 text-sm sm:text-base"
+            title={compactView ? 'Vista de tarjetas' : 'Vista de lista'}
+            style={{ minWidth: '110px' }}
+          >
+            {compactView ? (
+              <LayoutGrid className="w-4 h-4" />
+            ) : (
+              <ListIcon className="w-4 h-4" />
+            )}
+            <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowNewTaskModal(true)}
-          className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto justify-center"
-        >
-          <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span>Nueva Tarea</span>
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto justify-end">
+          <button
+            onClick={downloadTemplate}
+            className="bg-green-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 text-sm sm:text-base w-full sm:w-auto justify-center"
+          >
+            <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>Descargar Plantilla</span>
+          </button>
+          <label className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto justify-center cursor-pointer">
+            <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>{importing ? 'Importando...' : 'Importar Excel'}</span>
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleExcelImport}
+              className="hidden"
+              disabled={importing}
+            />
+          </label>
+          <button
+            onClick={() => setShowNewTaskModal(true)}
+            className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto justify-center"
+          >
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span>Nueva Tarea</span>
+          </button>
+        </div>
       </div>
 
-      {/* Tasks Grid */}
+      {/* Tasks Grid o Lista */}
       {filteredTasks.length === 0 ? (
         <div className="text-gray-500">No hay tareas para mostrar.</div>
+      ) : compactView ? (
+        // Vista de lista compacta
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-indigo-200 dark:divide-gray-700 text-sm">
+            <thead className="bg-indigo-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Título</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Descripción</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estudiante</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estado</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Entrega</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Horas</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Espacio</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-indigo-100 dark:divide-gray-800">
+              {filteredTasks.map(task => (
+                <tr key={task.id} className="hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors">
+                  <td className="px-3 py-2 font-medium text-indigo-900 dark:text-indigo-100 max-w-[180px] truncate" title={task.title}>{task.title}</td>
+                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300 max-w-[220px] truncate" title={task.description}>{task.description}</td>
+                  <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.student?.full_name || 'Sin asignar'}</td>
+                  <td className="px-3 py-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold shadow-md max-w-full truncate ${
+                      task.status === 'approved' ? 'bg-green-500 text-white' :
+                      task.status === 'submitted' ? 'bg-blue-500 text-white' :
+                      'bg-yellow-400 text-yellow-900 dark:text-yellow-100'
+                    }`}>
+                      {task.status === 'approved' ? 'Aprobada' :
+                        task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.due_date?.slice(0, 10)}</td>
+                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.required_hours}</td>
+                  <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.workspace?.name || 'Sin espacio'}</td>
+                  <td className="px-3 py-2">
+                    {(task.status === 'submitted' || task.status === 'approved') && (
+                      <button
+                        onClick={() => setShowEvidenceModal(task)}
+                        className={`px-3 py-1 rounded-lg text-white text-xs font-semibold shadow transition-all ${
+                          task.status === 'approved'
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        Ver Evidencia
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
+        // Vista de tarjetas (actual)
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredTasks.map(task => (
             <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
@@ -222,7 +526,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
               <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
                 <div className="flex items-center">
                   <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                  <span className="break-words">Entrega: {new Date(task.due_date).toLocaleDateString()}</span>
+                  <span className="break-words">Entrega: {task.due_date?.slice(0, 10)}</span>
                 </div>
                 <div className="flex items-center">
                   <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
@@ -267,6 +571,7 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
           students={students}
           onSubmit={handleCreateTask}
           onClose={() => setShowNewTaskModal(false)}
+          areaId={areaId}
         />
       )}
 
@@ -420,12 +725,147 @@ const TasksManager = ({ tasks, students, onTaskUpdate }) => {
           </div>
         </div>
       )}
+
+      {/* Import Preview Modal */}
+      {importPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 max-w-[95vw] sm:max-w-2xl w-full max-h-[90vh] sm:max-h-[70vh] flex flex-col shadow-xl my-4">
+            <div className="flex justify-between items-center mb-2 sm:mb-3">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Vista previa de importación
+              </h2>
+              <button
+                onClick={() => setImportPreview(false)}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {previewErrors.length > 0 && (
+              <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg overflow-y-auto max-h-[20vh] sm:max-h-[15vh]">
+                <div className="flex items-center text-red-700 dark:text-red-400 mb-1">
+                  <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                  <span className="font-semibold text-sm">Errores encontrados:</span>
+                </div>
+                <ul className="list-disc list-inside text-xs text-red-600 dark:text-red-400 space-y-0.5">
+                  {previewErrors.map((error, index) => (
+                    <li key={index} className="break-words">{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex-1 min-h-0 overflow-auto">
+              <div className="inline-block min-w-full align-middle">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
+                  <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                    <tr>
+                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Título</th>
+                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Descripción</th>
+                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Horas</th>
+                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Fecha</th>
+                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Espacio</th>
+                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Email Estudiante</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    {previewData.map((row, index) => (
+                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td className="px-2 py-1.5">
+                          <input
+                            type="text"
+                            value={row.title}
+                            onChange={(e) => handlePreviewEdit(index, 'title', e.target.value)}
+                            className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <textarea
+                            value={row.description}
+                            onChange={(e) => handlePreviewEdit(index, 'description', e.target.value)}
+                            className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[150px]"
+                            rows="1"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input
+                            type="number"
+                            min="1"
+                            value={row.required_hours}
+                            onChange={(e) => handlePreviewEdit(index, 'required_hours', e.target.value)}
+                            className="w-16 border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input
+                            type="date"
+                            value={row.due_date}
+                            onChange={(e) => handlePreviewEdit(index, 'due_date', e.target.value)}
+                            className="border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input
+                            type="text"
+                            value={row.workspace_name}
+                            onChange={(e) => handlePreviewEdit(index, 'workspace_name', e.target.value)}
+                            className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
+                          />
+                        </td>
+                        <td className="px-2 py-1.5">
+                          <input
+                            type="email"
+                            value={row.student_email}
+                            onChange={(e) => handlePreviewEdit(index, 'student_email', e.target.value)}
+                            className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[150px]"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setImportPreview(false)}
+                className="px-3 py-2 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm w-full sm:w-auto"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleImportConfirm}
+                disabled={previewErrors.length > 0 || importing}
+                className={`px-3 py-2 rounded-lg text-white flex items-center justify-center space-x-2 text-sm w-full sm:w-auto ${
+                  previewErrors.length > 0 || importing
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {importing ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>Importando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    <span>Confirmar Importación</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 // Componente del formulario de tareas
-const TaskForm = ({ students, onSubmit, onClose }) => {
+const TaskForm = ({ students, onSubmit, onClose, areaId }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -446,6 +886,7 @@ const TaskForm = ({ students, onSubmit, onClose }) => {
       const { data, error } = await supabase
         .from('workspaces')
         .select('*')
+        .eq('area_id', areaId)
         .order('id', { ascending: true });
 
       if (error) throw error;
