@@ -18,6 +18,146 @@ import StudentSchedule from './StudentSchedule';
 import ThemeToggle from './ThemeToggle';
 import WorkspacesManager from './WorkspacesManager';
 
+// Paleta de colores para estudiantes
+const studentColors = [
+  '#6366f1', // Indigo
+  '#f59e42', // Orange
+  '#10b981', // Green
+  '#f43f5e', // Red
+  '#3b82f6', // Blue
+  '#eab308', // Yellow
+  '#8b5cf6', // Violet
+  '#14b8a6', // Teal
+  '#f472b6', // Pink
+  '#a3e635', // Lime
+];
+
+// Asigna un color a cada estudiante por nombre
+function getStudentColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return studentColors[Math.abs(hash) % studentColors.length];
+}
+
+// Nuevo componente para mostrar horarios combinados
+const CombinedSchedule = ({ students }) => {
+  const [combinedSchedule, setCombinedSchedule] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  // Solo días de lunes a viernes
+  const daysOfWeek = [
+    'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'
+  ];
+
+  // Generar bloques de 1 hora desde 06:00 a 21:00
+  const hourBlocks = [];
+  for (let h = 6; h < 21; h++) {
+    const start = `${h.toString().padStart(2, '0')}:00`;
+    const end = `${(h + 1).toString().padStart(2, '0')}:00`;
+    hourBlocks.push({ start, end });
+  }
+
+  useEffect(() => {
+    fetchCombinedSchedule();
+  }, [students]);
+
+  const fetchCombinedSchedule = async () => {
+    try {
+      setLoading(true);
+      const studentIds = students.map(student => student.id);
+      const { data, error } = await supabase
+        .from('student_availability')
+        .select(`*, student:users!student_availability_student_id_fkey(full_name)`)
+        .in('student_id', studentIds);
+      if (error) throw error;
+      // Organizar los horarios por día
+      const scheduleByDay = {};
+      daysOfWeek.forEach(day => {
+        scheduleByDay[day] = [];
+      });
+      data.forEach(slot => {
+        if (scheduleByDay[slot.day_of_week]) {
+          scheduleByDay[slot.day_of_week].push({
+            ...slot,
+            studentName: slot.student.full_name
+          });
+        }
+      });
+      setCombinedSchedule(scheduleByDay);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching combined schedule:', error);
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-xl p-6 overflow-x-auto">
+      <h2 className="text-xl font-semibold text-indigo-800 mb-6">Horarios Combinados de Estudiantes</h2>
+      <div className="w-full">
+        <table className="min-w-full border-separate border-spacing-0 rounded-xl overflow-hidden">
+          <thead>
+            <tr>
+              <th className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center font-bold border-b-2 border-r-2 border-indigo-300">Hora</th>
+              {daysOfWeek.map(day => (
+                <th key={day} className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center font-bold border-b-2 border-r-2 border-indigo-300 last:border-r-0">{day}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {hourBlocks.map(({ start, end }, rowIdx) => (
+              <tr key={start}>
+                <td className="bg-indigo-50 text-indigo-700 px-2 py-2 text-center font-semibold border-b-2 border-r-2 border-indigo-200 w-20">{start}</td>
+                {daysOfWeek.map((day, colIdx) => {
+                  const slotsArr = Array.isArray(combinedSchedule[day]) ? combinedSchedule[day] : [];
+                  // Estudiantes presentes durante TODO el bloque (no solo solapados)
+                  const slots = slotsArr.filter(slot => {
+                    // El bloque debe estar completamente dentro del horario del estudiante
+                    return slot.start_time <= start && slot.end_time >= end;
+                  });
+                  return (
+                    <td key={day} className={`px-2 py-2 min-w-[120px] align-top border-b-2 border-r-2 border-indigo-100 last:border-r-0 ${rowIdx === hourBlocks.length - 1 ? '' : ''}`}>
+                      {slots.length === 0 ? (
+                        <span className="text-gray-300 text-xs">-</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {slots.map((slot, idx) => {
+                            const color = getStudentColor(slot.studentName);
+                            return (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 rounded-full text-xs font-semibold text-white shadow"
+                                style={{ background: color }}
+                                title={`${slot.studentName} (${slot.start_time} - ${slot.end_time})`}
+                              >
+                                {slot.studentName}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('students');
   const [students, setStudents] = useState([]);
@@ -100,9 +240,6 @@ const AdminDashboard = () => {
     }
   };
 
-
-
-
   const handleSignOut = async () => {
     setLogoutLoading(true);
     try {
@@ -129,26 +266,58 @@ const AdminDashboard = () => {
         return <Statistics students={students} tasks={tasks} areas={areas} />;
         
       case 'schedule':
-        return selectedStudentId ? (
-          <div>
-            <button
-              onClick={() => setSelectedStudentId(null)}
-              className="mb-4 text-indigo-600 hover:underline"
-            >
-              ← Volver a la lista de estudiantes
-            </button>
-            <StudentSchedule
-              studentId={selectedStudentId}
-              readOnly={true}
-            />
+        return (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-indigo-800">Gestión de Horarios</h2>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setSelectedStudentId(null)}
+                  className={`px-4 py-2 rounded-lg ${
+                    selectedStudentId === null
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Vista Combinada
+                </button>
+                <button
+                  onClick={() => setSelectedStudentId('individual')}
+                  className={`px-4 py-2 rounded-lg ${
+                    selectedStudentId === 'individual'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Horarios Individuales
+                </button>
+              </div>
+            </div>
+
+            {selectedStudentId === null ? (
+              <CombinedSchedule students={students} />
+            ) : selectedStudentId === 'individual' ? (
+              <StudentsList
+                students={students}
+                onSelectStudent={(id) => setSelectedStudentId(id)}
+                showScheduleOption={true}
+                areas={areas}
+              />
+            ) : (
+              <div>
+                <button
+                  onClick={() => setSelectedStudentId('individual')}
+                  className="mb-4 text-indigo-600 hover:underline"
+                >
+                  ← Volver a la lista de estudiantes
+                </button>
+                <StudentSchedule
+                  studentId={selectedStudentId}
+                  readOnly={true}
+                />
+              </div>
+            )}
           </div>
-        ) : (
-          <StudentsList
-            students={students}
-            onSelectStudent={(id) => setSelectedStudentId(id)}
-            showScheduleOption={true}
-            areas={areas}
-          />
         );
       case 'workspaces':
         return <WorkspacesManager areaId={userData?.internship_area} />;
