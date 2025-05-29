@@ -26,7 +26,6 @@ const studentColors = [
   '#f43f5e', // Red
   '#3b82f6', // Blue
   '#eab308', // Yellow
-  '#8b5cf6', // Violet
   '#14b8a6', // Teal
   '#f472b6', // Pink
   '#a3e635', // Lime
@@ -117,7 +116,7 @@ const CombinedSchedule = ({ students }) => {
           <tbody>
             {hourBlocks.map(({ start, end }, rowIdx) => (
               <tr key={start}>
-                <td className="bg-indigo-50 text-indigo-700 px-2 py-2 text-center font-semibold border-b-2 border-r-2 border-indigo-200 w-20">{start}</td>
+                <td className="bg-indigo-50 text-indigo-700 px-2 py-2 text-center font-semibold border-b-2 border-r-2 border-indigo-200 w-20">{start} - {end}</td>
                 {daysOfWeek.map((day, colIdx) => {
                   const slotsArr = Array.isArray(combinedSchedule[day]) ? combinedSchedule[day] : [];
                   // Estudiantes presentes durante TODO el bloque (no solo solapados)
@@ -584,11 +583,6 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) 
               <div className={`mt-1 sm:mt-2 text-xs sm:text-sm ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
                 {student.current_hours} de {student.hours_required} horas completadas
               </div>
-              {isCompleted && (
-                <div className="text-xs sm:text-sm text-green-700 mt-1 font-semibold">
-                  ¡Horas completadas!
-                </div>
-              )}
             </div>
             {showScheduleOption && (
               <button

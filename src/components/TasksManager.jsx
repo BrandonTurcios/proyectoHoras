@@ -226,6 +226,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
           const errors = validatePreviewData(formattedData);
           setPreviewErrors(errors);
           setPreviewData(formattedData);
+          document.body.style.overflow = 'hidden';
           setImportPreview(true);
         } catch (error) {
           console.error('Error processing Excel file:', error);
@@ -353,6 +354,21 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
     XLSX.writeFile(wb, 'plantilla_tareas.xlsx');
   };
 
+  const handleCloseNewTaskModal = () => {
+    setShowNewTaskModal(false);
+    document.body.style.overflow = 'auto';
+  };
+
+  const handleCloseEvidenceModal = () => {
+    setShowEvidenceModal(null);
+    document.body.style.overflow = 'auto';
+  };
+
+  const handleCloseImportPreview = () => {
+    setImportPreview(false);
+    document.body.style.overflow = 'auto';
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
@@ -414,7 +430,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
             />
           </label>
           <button
-            onClick={() => setShowNewTaskModal(true)}
+            onClick={() => {
+              document.body.style.overflow = 'hidden';
+              setShowNewTaskModal(true);
+            }}
             className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto justify-center"
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -464,7 +483,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                   <td className="px-3 py-2">
                     {(task.status === 'submitted' || task.status === 'approved') && (
                       <button
-                        onClick={() => setShowEvidenceModal(task)}
+                        onClick={() => {
+                          document.body.style.overflow = 'hidden';
+                          setShowEvidenceModal(task);
+                        }}
                         className={`px-3 py-1 rounded-lg text-white text-xs font-semibold shadow transition-all ${
                           task.status === 'approved'
                             ? 'bg-green-600 hover:bg-green-700'
@@ -550,7 +572,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
               </div>
               {(task.status === 'submitted' || task.status === 'approved') && (
                 <button
-                  onClick={() => setShowEvidenceModal(task)}
+                  onClick={() => {
+                    document.body.style.overflow = 'hidden';
+                    setShowEvidenceModal(task);
+                  }}
                   className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
                     task.status === 'approved' 
                       ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
@@ -570,19 +595,22 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
         <TaskForm
           students={students}
           onSubmit={handleCreateTask}
-          onClose={() => setShowNewTaskModal(false)}
+          onClose={handleCloseNewTaskModal}
           areaId={areaId}
         />
       )}
 
       {/* Evidence Review Modal */}
       {showEvidenceModal && (
-        <div className="fixed -inset-6 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
+        <div 
+          className="fixed -inset-6 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        >
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 sm:p-8 max-w-3xl w-full max-h-[100vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Revisión de Evidencia</h2>
               <button
-                onClick={() => setShowEvidenceModal(null)}
+                onClick={handleCloseEvidenceModal}
                 className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               >
                 <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -728,14 +756,17 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
 
       {/* Import Preview Modal */}
       {importPreview && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+        >
           <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 max-w-[95vw] sm:max-w-2xl w-full max-h-[90vh] sm:max-h-[70vh] flex flex-col shadow-xl my-4">
             <div className="flex justify-between items-center mb-2 sm:mb-3">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Vista previa de importación
               </h2>
               <button
-                onClick={() => setImportPreview(false)}
+                onClick={handleCloseImportPreview}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 p-1"
               >
                 <X className="w-5 h-5" />
@@ -830,7 +861,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
 
             <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => setImportPreview(false)}
+                onClick={handleCloseImportPreview}
                 className="px-3 py-2 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm w-full sm:w-auto"
               >
                 Cancelar
@@ -878,6 +909,16 @@ const TaskForm = ({ students, onSubmit, onClose, areaId }) => {
   const [workspaces, setWorkspaces] = useState([]);
 
   useEffect(() => {
+    // Agregar overflow-hidden al body cuando el modal se abre
+    document.body.style.overflow = 'hidden';
+    
+    // Limpiar el estilo cuando el componente se desmonta
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  useEffect(() => {
     fetchWorkspaces();
   }, []);
 
@@ -899,6 +940,11 @@ const TaskForm = ({ students, onSubmit, onClose, areaId }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit(formData);
+  };
+
+  const handleClose = () => {
+    document.body.style.overflow = 'unset';
+    onClose();
   };
 
   return (
@@ -1001,7 +1047,7 @@ const TaskForm = ({ students, onSubmit, onClose, areaId }) => {
           <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-4 sm:mt-6">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 w-full sm:w-auto text-sm sm:text-base text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600"
             >
               Cancelar
