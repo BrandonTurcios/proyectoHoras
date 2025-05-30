@@ -409,16 +409,16 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
             <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
           </button>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
           <button
             onClick={downloadTemplate}
-            className="bg-green-600 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-green-700 text-sm sm:text-base w-full sm:w-auto"
+            className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2"
           >
-            <Download className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Download className="w-5 h-5" />
             <span>Descargar Plantilla</span>
           </button>
-          <label className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto cursor-pointer">
-            <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
+          <label className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2 cursor-pointer">
+            <Upload className="w-5 h-5" />
             <span>{importing ? 'Importando...' : 'Importar Excel'}</span>
             <input
               type="file"
@@ -433,9 +433,9 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
               document.body.style.overflow = 'hidden';
               setShowNewTaskModal(true);
             }}
-            className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto"
+            className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2"
           >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Plus className="w-5 h-5" />
             <span>Nueva Tarea</span>
           </button>
         </div>
