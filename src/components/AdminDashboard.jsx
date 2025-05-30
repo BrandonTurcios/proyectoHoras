@@ -49,9 +49,9 @@ const CombinedSchedule = ({ students }) => {
   const [combinedSchedule, setCombinedSchedule] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Solo días de lunes a viernes
+  // Solo días de lunes a sábado
   const daysOfWeek = [
-    'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'
+    'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
   ];
 
   // Generar bloques de 1 hora desde 06:00 a 21:00
@@ -106,12 +106,11 @@ const CombinedSchedule = ({ students }) => {
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-6 overflow-x-auto">
-      <h2 className="text-xl font-semibold text-indigo-800 mb-6">Horarios Combinados de Estudiantes</h2>
-      <div className="w-full">
-        <table className="min-w-full border-separate border-spacing-0 rounded-xl overflow-hidden">
+      <div className="w-full overflow-x-auto">
+        <table className="table-fixed w-full min-w-[600px] border-separate border-spacing-0 rounded-xl overflow-hidden">
           <thead>
             <tr>
-              <th className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center font-bold border-b-2 border-r-2 border-indigo-300">Hora</th>
+              <th className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center text-lg font-bold border-b-2 border-r-2 border-indigo-300">Hora</th>
               {daysOfWeek.map(day => (
                 <th key={day} className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center font-bold border-b-2 border-r-2 border-indigo-300 last:border-r-0">{day}</th>
               ))}
@@ -120,7 +119,9 @@ const CombinedSchedule = ({ students }) => {
           <tbody>
             {hourBlocks.map(({ start, end }, rowIdx) => (
               <tr key={start}>
-                <td className="bg-indigo-50 text-indigo-700 px-2 py-2 text-center font-semibold border-b-2 border-r-2 border-indigo-200 w-20">{start} - {end}</td>
+                <td className="bg-indigo-50 text-indigo-700 px-1 py-3 text-center text-lg font-bold border-b-2 border-r-2 border-indigo-200 w-20 leading-tight">
+                  {start} - {end}
+                </td>
                 {daysOfWeek.map((day, colIdx) => {
                   const slotsArr = Array.isArray(combinedSchedule[day]) ? combinedSchedule[day] : [];
                   // Estudiantes presentes durante TODO el bloque (no solo solapados)
@@ -129,17 +130,17 @@ const CombinedSchedule = ({ students }) => {
                     return slot.start_time <= start && slot.end_time >= end;
                   });
                   return (
-                    <td key={day} className={`px-2 py-2 min-w-[120px] align-top border-b-2 border-r-2 border-indigo-100 last:border-r-0 ${rowIdx === hourBlocks.length - 1 ? '' : ''}`}>
+                    <td key={day} className={`px-0 py-3 align-top border-b-2 border-r-2 border-indigo-100 last:border-r-0 text-xs leading-tight whitespace-nowrap ${rowIdx === hourBlocks.length - 1 ? '' : ''}`}>
                       {slots.length === 0 ? (
                         <span className="text-gray-300 text-xs">-</span>
                       ) : (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-col items-start gap-1 w-full">
                           {slots.map((slot, idx) => {
                             const color = getStudentColor(slot.studentName);
                             return (
                               <span
                                 key={idx}
-                                className="px-2 py-0.5 rounded-full text-xs font-semibold text-white shadow"
+                                className="sm:px-3 px-1.5 sm:py-1 py-0.5 rounded-lg sm:text-base text-xs font-semibold text-white shadow-md break-words whitespace-normal w-full"
                                 style={{ background: color }}
                                 title={`${slot.studentName} (${slot.start_time} - ${slot.end_time})`}
                               >
@@ -271,12 +272,12 @@ const AdminDashboard = () => {
       case 'schedule':
         return (
           <div className="space-y-6">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h2 className="text-xl font-semibold text-indigo-800">Gestión de Horarios</h2>
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => setSelectedStudentId(null)}
-                  className={`px-4 py-2 rounded-lg ${
+                  className={`px-4 py-2 rounded-lg w-full sm:w-auto ${
                     selectedStudentId === null
                       ? 'bg-indigo-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -286,7 +287,7 @@ const AdminDashboard = () => {
                 </button>
                 <button
                   onClick={() => setSelectedStudentId('individual')}
-                  className={`px-4 py-2 rounded-lg ${
+                  className={`px-4 py-2 rounded-lg w-full sm:w-auto ${
                     selectedStudentId === 'individual'
                       ? 'bg-indigo-600 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -389,67 +390,69 @@ const AdminDashboard = () => {
           </p>
         </div>
         
-        <nav className="mt-4 sm:mt-6 flex-1">
-          <button
-            onClick={() => {
-              setActiveTab('students');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-              activeTab === 'students' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
-            }`}
-          >
-            <Users className="w-5 h-5 mr-3" />
-            <span>Estudiantes</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('tasks');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-              activeTab === 'tasks' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
-            }`}
-          >
-            <ClipboardList className="w-5 h-5 mr-3" />
-            <span>Tareas</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('statistics');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-              activeTab === 'statistics' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
-            }`}
-          >
-            <BarChart2 className="w-5 h-5 mr-3" />
-            <span>Estadísticas</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('schedule');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-              activeTab === 'schedule' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
-            }`}
-          >
-            <Calendar className="w-5 h-5 mr-3" />
-            <span>Horarios</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('workspaces');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-              activeTab === 'workspaces' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
-            }`}
-          >
-            <Briefcase className="w-5 h-5 mr-3" />
-            <span>Espacios de Trabajo</span>
-          </button>
+        <nav className="mt-4 sm:mt-6 flex-1 flex flex-col justify-between">
+          <div className="space-y-2 sm:space-y-0">
+            <button
+              onClick={() => {
+                setActiveTab('students');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+                activeTab === 'students' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+              }`}
+            >
+              <Users className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Estudiantes</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('tasks');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+                activeTab === 'tasks' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+              }`}
+            >
+              <ClipboardList className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Tareas</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('statistics');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+                activeTab === 'statistics' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+              }`}
+            >
+              <BarChart2 className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Estadísticas</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('schedule');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+                activeTab === 'schedule' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+              }`}
+            >
+              <Calendar className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Horarios</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('workspaces');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+                activeTab === 'workspaces' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+              }`}
+            >
+              <Briefcase className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Espacios de Trabajo</span>
+            </button>
+          </div>
         </nav>
 
 {/* Menú de usuario y ThemeToggle al fondo */}

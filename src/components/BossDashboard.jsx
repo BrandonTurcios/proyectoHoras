@@ -305,68 +305,70 @@ const BossDashboard = () => {
           <p className="text-xs sm:text-sm text-indigo-500 dark:text-indigo-400">Gestión de Áreas</p>
         </div>
         
-        <nav className="mt-4 sm:mt-6 flex-1">
-          <button
-            onClick={() => {
-              setActiveTab('admins');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'admins' ? 'bg-indigo-50 text-indigo-600' : ''
-            }`}
-          >
-            <Users className="w-5 h-5 mr-3" />
-            <span>Administradores</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('areas');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'areas' ? 'bg-indigo-50 text-indigo-600' : ''
-            }`}
-          >
-            <Building2 className="w-5 h-5 mr-3" />
-            <span>Áreas</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('tasks');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'tasks' ? 'bg-indigo-50 text-indigo-600' : ''
-            }`}
-          >
-            <ClipboardList className="w-5 h-5 mr-3" />
-            <span>Tareas</span>
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab('statistics');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'statistics' ? 'bg-indigo-50 text-indigo-600' : ''
-            }`}
-          >
-            <BarChart2 className="w-5 h-5 mr-3" />
-            <span>Estadísticas</span>
-          </button>
-          
-          <button
-            onClick={() => {
-              setActiveTab('requests');
-              setIsSidebarOpen(false);
-            }}
-            className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-              activeTab === 'requests' ? 'bg-indigo-50 text-indigo-600' : ''
-            }`}
-          >
-            <Mail className="w-5 h-5 mr-3" />
-            <span>Solicitudes</span>
-          </button>
+        <nav className="mt-4 sm:mt-6 flex-1 flex flex-col justify-between">
+          <div className="space-y-2 sm:space-y-0">
+            <button
+              onClick={() => {
+                setActiveTab('admins');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+                activeTab === 'admins' ? 'bg-indigo-50 text-indigo-600' : ''
+              }`}
+            >
+              <Users className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Administradores</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('areas');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+                activeTab === 'areas' ? 'bg-indigo-50 text-indigo-600' : ''
+              }`}
+            >
+              <Building2 className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Áreas</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('tasks');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+                activeTab === 'tasks' ? 'bg-indigo-50 text-indigo-600' : ''
+              }`}
+            >
+              <ClipboardList className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Tareas</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('statistics');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+                activeTab === 'statistics' ? 'bg-indigo-50 text-indigo-600' : ''
+              }`}
+            >
+              <BarChart2 className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Estadísticas</span>
+            </button>
+            
+            <button
+              onClick={() => {
+                setActiveTab('requests');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+                activeTab === 'requests' ? 'bg-indigo-50 text-indigo-600' : ''
+              }`}
+            >
+              <Mail className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Solicitudes</span>
+            </button>
+          </div>
         </nav>
 
         {/* Menú de usuario y ThemeToggle al fondo */}

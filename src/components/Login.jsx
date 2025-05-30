@@ -230,9 +230,6 @@ const Login = () => {
           showNotification('error', 'Las contraseñas no coinciden');
           setLoading(false);
           return;
-          showNotification('error', 'Las contraseñas no coinciden');
-          setLoading(false);
-          return;
         }
 
         const { error } = await signUp(formData.email, formData.password, {
@@ -281,10 +278,6 @@ const Login = () => {
     return validDomains.includes(domain);
   };
   
-  // Y en el handleSubmit, agregar esta validación al inicio:
- 
- 
-
   return (
     <div
       className="min-h-screen flex items-center justify-center relative p-4"

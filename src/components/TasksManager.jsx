@@ -398,9 +398,8 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
           </select>
           <button
             onClick={() => setCompactView(v => !v)}
-            className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900 text-sm sm:text-base"
+            className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900 text-sm sm:text-base w-full sm:w-auto"
             title={compactView ? 'Vista de tarjetas' : 'Vista de lista'}
-            style={{ minWidth: '110px' }}
           >
             {compactView ? (
               <LayoutGrid className="w-4 h-4" />
@@ -410,15 +409,15 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
             <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
           </button>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto justify-end">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
             onClick={downloadTemplate}
-            className="bg-green-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-green-700 text-sm sm:text-base w-full sm:w-auto justify-center"
+            className="bg-green-600 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-green-700 text-sm sm:text-base w-full sm:w-auto"
           >
             <Download className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Descargar Plantilla</span>
           </button>
-          <label className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto justify-center cursor-pointer">
+          <label className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto cursor-pointer">
             <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>{importing ? 'Importando...' : 'Importar Excel'}</span>
             <input
@@ -434,7 +433,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
               document.body.style.overflow = 'hidden';
               setShowNewTaskModal(true);
             }}
-            className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto justify-center"
+            className="bg-indigo-600 text-white px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-700 text-sm sm:text-base w-full sm:w-auto"
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Nueva Tarea</span>

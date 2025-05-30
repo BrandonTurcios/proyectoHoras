@@ -384,22 +384,26 @@ const StudentDashboard = () => {
     </p>
         </div>
         
-        <nav className="mt-4 sm:mt-6 flex-1">
-          {SIDEBAR_ITEMS.map(item => (
-            <button
-              key={item.key}
-              onClick={() => {
-                setActiveTab(item.key);
-                setIsSidebarOpen(false);
-              }}
-              className={`w-full flex items-center p-2 sm:p-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
-                activeTab === item.key ? 'bg-indigo-50 text-indigo-600' : ''
-              }`}
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </button>
-          ))}
+        <nav className="mt-4 sm:mt-6 flex-1 flex flex-col justify-between">
+          <div className="space-y-2 sm:space-y-0">
+            {SIDEBAR_ITEMS.map(item => (
+              <button
+                key={item.key}
+                onClick={() => {
+                  setActiveTab(item.key);
+                  setIsSidebarOpen(false);
+                }}
+                className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+                  activeTab === item.key ? 'bg-indigo-50 text-indigo-600' : ''
+                }`}
+              >
+                <div className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3">
+                  {item.icon}
+                </div>
+                <span className="text-lg sm:text-base">{item.label}</span>
+              </button>
+            ))}
+          </div>
         </nav>
 
         {/* Add ProgressCard here */}
