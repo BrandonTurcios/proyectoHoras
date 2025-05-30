@@ -29,6 +29,10 @@ const studentColors = [
   '#14b8a6', // Teal
   '#f472b6', // Pink
   '#a3e635', // Lime
+  //agregar mas colores
+  '#DE3163',
+  '#DFFF00'
+
 ];
 
 // Asigna un color a cada estudiante por nombre
