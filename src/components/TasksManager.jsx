@@ -29,23 +29,63 @@ import timezone from 'dayjs/plugin/timezone';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const Notification = ({ type, message, onClose }) => {
+  const isError = type === 'error';
+  
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-fade-in-up">
+      <div className={`rounded-lg shadow-lg p-4 flex items-center space-x-3 ${
+        isError ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'
+      }`}>
+        <div className={`flex-shrink-0 ${isError ? 'text-red-600' : 'text-green-600'}`}>
+          {isError ? <AlertCircle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />}
+        </div>
+        <div className="flex-1">
+          <p className={`text-sm font-medium ${isError ? 'text-red-800' : 'text-green-800'}`}>
+            {message}
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className={`flex-shrink-0 p-1 rounded-full hover:bg-opacity-20 ${
+            isError ? 'hover:bg-red-200' : 'hover:bg-green-200'
+          }`}
+        >
+          <X className={`w-4 h-4 ${isError ? 'text-red-600' : 'text-green-600'}`} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const TasksManager = ({ students, onTaskUpdate, areaId }) => {
   const [tasks, setTasks] = useState([]);
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, pending, submitted, approved
-  const [selectedStudent, setSelectedStudent] = useState('all'); // all or student id
+  const [filter, setFilter] = useState('all');
+  const [selectedStudent, setSelectedStudent] = useState('all');
   const { userData } = useAuth();
   const [compactView, setCompactView] = useState(false); // Nueva vista
   const [importing, setImporting] = useState(false);
   const [importPreview, setImportPreview] = useState(false);
   const [previewData, setPreviewData] = useState([]);
   const [previewErrors, setPreviewErrors] = useState([]);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     if (userData?.id) fetchTasks();
     // eslint-disable-next-line
   }, [areaId, userData?.id]);
+
+  useEffect(() => {
+    let timer;
+    if (notification) {
+      timer = setTimeout(() => {
+        setNotification(null);
+      }, 2000);
+    }
+    return () => clearTimeout(timer);
+  }, [notification]);
 
   const isTaskOverdue = (dueDate) => {
     const today = new Date();
@@ -76,8 +116,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
 
       if (error) {
         console.error("Error al crear tarea:", error);
+        setNotification({ type: 'error', message: 'Error al crear la tarea: ' + error.message });
         return;
       }
+      setNotification({ type: 'success', message: 'Tarea creada exitosamente' });
     } else {
       // Crear una tarea para cada estudiante seleccionado
       const tasksToCreate = student_ids.map(student_id => ({
@@ -93,8 +135,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
 
       if (error) {
         console.error("Error al crear tareas:", error);
+        setNotification({ type: 'error', message: 'Error al crear las tareas: ' + error.message });
         return;
       }
+      setNotification({ type: 'success', message: 'Tareas creadas exitosamente' });
     }
 
     onTaskUpdate();
@@ -370,527 +414,536 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto items-stretch">
-          <select
-            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          >
-            <option value="all">Todos los estados</option>
-            <option value="pending">Pendientes</option>
-            <option value="submitted">Enviadas</option>
-            <option value="approved">Aprobadas</option>
-          </select>
-          <select
-            className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
-            value={selectedStudent}
-            onChange={(e) => setSelectedStudent(e.target.value)}
-          >
-            <option value="all">Todos los estudiantes</option>
-            {students.map(student => (
-              <option key={student.id} value={student.id}>
-                {student.full_name}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={() => setCompactView(v => !v)}
-            className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900 text-sm sm:text-base w-full sm:w-auto"
-            title={compactView ? 'Vista de tarjetas' : 'Vista de lista'}
-          >
-            {compactView ? (
-              <LayoutGrid className="w-4 h-4" />
-            ) : (
-              <ListIcon className="w-4 h-4" />
-            )}
-            <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
-          </button>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-          <button
-            onClick={downloadTemplate}
-            className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2"
-          >
-            <Download className="w-5 h-5" />
-            <span>Descargar Plantilla</span>
-          </button>
-          <label className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2 cursor-pointer">
-            <Upload className="w-5 h-5" />
-            <span>{importing ? 'Importando...' : 'Importar Excel'}</span>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleExcelImport}
-              className="hidden"
-              disabled={importing}
-            />
-          </label>
-          <button
-            onClick={() => {
-              document.body.style.overflow = 'hidden';
-              setShowNewTaskModal(true);
-            }}
-            className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Nueva Tarea</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tasks Grid o Lista */}
-      {filteredTasks.length === 0 ? (
-        <div className="text-gray-500">No hay tareas para mostrar.</div>
-      ) : compactView ? (
-        // Vista de lista compacta
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-indigo-200 dark:divide-gray-700 text-sm">
-            <thead className="bg-indigo-50 dark:bg-gray-800">
-              <tr>
-                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Título</th>
-                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Descripción</th>
-                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estudiante</th>
-                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estado</th>
-                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Entrega</th>
-                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Horas</th>
-                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Espacio</th>
-                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-indigo-100 dark:divide-gray-800">
-              {filteredTasks.map(task => (
-                <tr key={task.id} className="hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors">
-                  <td className="px-3 py-2 font-medium text-indigo-900 dark:text-indigo-100 max-w-[180px] truncate" title={task.title}>{task.title}</td>
-                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300 max-w-[220px] truncate" title={task.description}>{task.description}</td>
-                  <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.student?.full_name || 'Sin asignar'}</td>
-                  <td className="px-3 py-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold shadow-md max-w-full truncate ${
-                      task.status === 'approved' ? 'bg-green-500 text-white' :
-                      task.status === 'submitted' ? 'bg-blue-500 text-white' :
-                      'bg-yellow-400 text-yellow-900 dark:text-yellow-100'
-                    }`}>
-                      {task.status === 'approved' ? 'Aprobada' :
-                        task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.due_date?.slice(0, 10)}</td>
-                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.required_hours}</td>
-                  <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.workspace?.name || 'Sin espacio'}</td>
-                  <td className="px-3 py-2">
-                    {(task.status === 'submitted' || task.status === 'approved') && (
-                      <button
-                        onClick={() => {
-                          document.body.style.overflow = 'hidden';
-                          setShowEvidenceModal(task);
-                        }}
-                        className={`px-3 py-1 rounded-lg text-white text-xs font-semibold shadow transition-all ${
-                          task.status === 'approved'
-                            ? 'bg-green-600 hover:bg-green-700'
-                            : 'bg-blue-600 hover:bg-blue-700'
-                        }`}
-                      >
-                        Ver Evidencia
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        // Vista de tarjetas (actual)
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTasks.map(task => (
-            <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
-              <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
-                <div className="relative group flex-1 min-w-0">
-                  <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate" title={task.title}>
-                    {task.title}
-                  </h3>
-                  {/* Tooltip for long titles */}
-                  <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
-                    {task.title}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
-                    task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white animate-pulse' :
-                    task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
-                    'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
-                  }`} title={
-                    task.status === 'approved' ? 'Aprobada' :
-                    task.status === 'submitted' ? 'Enviada' : 'Pendiente'
-                  }>
-                    {task.status === 'approved' ? 'Aprobada' :
-                     task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
-                  </span>
-                  {isTaskOverdue(task.due_date) && task.status === 'pending' && (
-                    <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white">
-                      Atrasada
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div className="relative group mb-3 sm:mb-4">
-                <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg line-clamp-3" title={task.description}>
-                  {task.description}
-                </p>
-                {/* Tooltip for long descriptions */}
-                <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
-                  {task.description}
-                </div>
-              </div>
-              <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                  <span className="break-words">Entrega: {task.due_date?.slice(0, 10)}</span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                  <span className="break-words">{task.required_hours} horas requeridas</span>
-                </div>
-                
-                <div className="flex items-center">
-                  <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                  <span className="break-words">
-                    Asignado a: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.student?.full_name || 'Sin asignar'}</span>
-                  </span>
-                </div>
-                {task.workspace && (
-                  <div className="flex items-center">
-                    <Briefcase className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                    <span className="break-words">
-                      Espacio: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.workspace.name}</span>
-                    </span>
-                  </div>
-                )}
-              </div>
-              {(task.status === 'submitted' || task.status === 'approved') && (
-                <button
-                  onClick={() => {
-                    document.body.style.overflow = 'hidden';
-                    setShowEvidenceModal(task);
-                  }}
-                  className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
-                    task.status === 'approved' 
-                      ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
-                      : 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800'
-                  }`}
-                >
-                  Ver Evidencia
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* New Task Modal */}
-      {showNewTaskModal && (
-        <TaskForm
-          students={students}
-          onSubmit={handleCreateTask}
-          onClose={handleCloseNewTaskModal}
-          areaId={areaId}
+    <>
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
         />
       )}
+      <div className="space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto items-stretch">
+            <select
+              className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+            >
+              <option value="all">Todos los estados</option>
+              <option value="pending">Pendientes</option>
+              <option value="submitted">Enviadas</option>
+              <option value="approved">Aprobadas</option>
+            </select>
+            <select
+              className="border rounded-lg px-3 py-2 text-sm sm:text-base w-full sm:w-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-700"
+              value={selectedStudent}
+              onChange={(e) => setSelectedStudent(e.target.value)}
+            >
+              <option value="all">Todos los estudiantes</option>
+              {students.map(student => (
+                <option key={student.id} value={student.id}>
+                  {student.full_name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setCompactView(v => !v)}
+              className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900 text-sm sm:text-base w-full sm:w-auto"
+              title={compactView ? 'Vista de tarjetas' : 'Vista de lista'}
+            >
+              {compactView ? (
+                <LayoutGrid className="w-4 h-4" />
+              ) : (
+                <ListIcon className="w-4 h-4" />
+              )}
+              <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
+            </button>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+            <button
+              onClick={downloadTemplate}
+              className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2"
+            >
+              <Download className="w-5 h-5" />
+              <span>Descargar Plantilla</span>
+            </button>
+            <label className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2 cursor-pointer">
+              <Upload className="w-5 h-5" />
+              <span>{importing ? 'Importando...' : 'Importar Excel'}</span>
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleExcelImport}
+                className="hidden"
+                disabled={importing}
+              />
+            </label>
+            <button
+              onClick={() => {
+                document.body.style.overflow = 'hidden';
+                setShowNewTaskModal(true);
+              }}
+              className="flex items-center justify-center w-full sm:w-auto px-3 py-2 sm:px-3 sm:py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg transition-colors text-sm gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Nueva Tarea</span>
+            </button>
+          </div>
+        </div>
 
-      {/* Evidence Review Modal */}
-      {showEvidenceModal && (
-        <div 
-          className="fixed -inset-6 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 sm:p-8 max-w-3xl w-full max-h-[100vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Revisión de Evidencia</h2>
-              <button
-                onClick={handleCloseEvidenceModal}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-              >
-                <X className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Descripción del estudiante:</h3>
-                <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">{showEvidenceModal.evidences?.[0]?.description || 'No hay descripción disponible'}</p>
+        {/* Tasks Grid o Lista */}
+        {filteredTasks.length === 0 ? (
+          <div className="text-gray-500">No hay tareas para mostrar.</div>
+        ) : compactView ? (
+          // Vista de lista compacta
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-indigo-200 dark:divide-gray-700 text-sm">
+              <thead className="bg-indigo-50 dark:bg-gray-800">
+                <tr>
+                  <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Título</th>
+                  <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Descripción</th>
+                  <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estudiante</th>
+                  <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estado</th>
+                  <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Entrega</th>
+                  <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Horas</th>
+                  <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Espacio</th>
+                  <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-900 divide-y divide-indigo-100 dark:divide-gray-800">
+                {filteredTasks.map(task => (
+                  <tr key={task.id} className="hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors">
+                    <td className="px-3 py-2 font-medium text-indigo-900 dark:text-indigo-100 max-w-[180px] truncate" title={task.title}>{task.title}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300 max-w-[220px] truncate" title={task.description}>{task.description}</td>
+                    <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.student?.full_name || 'Sin asignar'}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold shadow-md max-w-full truncate ${
+                        task.status === 'approved' ? 'bg-green-500 text-white' :
+                        task.status === 'submitted' ? 'bg-blue-500 text-white' :
+                        'bg-yellow-400 text-yellow-900 dark:text-yellow-100'
+                      }`}>
+                        {task.status === 'approved' ? 'Aprobada' :
+                          task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.due_date?.slice(0, 10)}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.required_hours}</td>
+                    <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.workspace?.name || 'Sin espacio'}</td>
+                    <td className="px-3 py-2">
+                      {(task.status === 'submitted' || task.status === 'approved') && (
+                        <button
+                          onClick={() => {
+                            document.body.style.overflow = 'hidden';
+                            setShowEvidenceModal(task);
+                          }}
+                          className={`px-3 py-1 rounded-lg text-white text-xs font-semibold shadow transition-all ${
+                            task.status === 'approved'
+                              ? 'bg-green-600 hover:bg-green-700'
+                              : 'bg-blue-600 hover:bg-blue-700'
+                          }`}
+                        >
+                          Ver Evidencia
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          // Vista de tarjetas (actual)
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTasks.map(task => (
+              <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
+                <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
+                  <div className="relative group flex-1 min-w-0">
+                    <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate" title={task.title}>
+                      {task.title}
+                    </h3>
+                    {/* Tooltip for long titles */}
+                    <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                      {task.title}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
+                      task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white animate-pulse' :
+                      task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
+                      'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
+                    }`} title={
+                      task.status === 'approved' ? 'Aprobada' :
+                      task.status === 'submitted' ? 'Enviada' : 'Pendiente'
+                    }>
+                      {task.status === 'approved' ? 'Aprobada' :
+                       task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+                    </span>
+                    {isTaskOverdue(task.due_date) && task.status === 'pending' && (
+                      <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white">
+                        Atrasada
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="relative group mb-3 sm:mb-4">
+                  <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg line-clamp-3" title={task.description}>
+                    {task.description}
+                  </p>
+                  {/* Tooltip for long descriptions */}
+                  <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                    {task.description}
+                  </div>
+                </div>
+                <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                    <span className="break-words">Entrega: {task.due_date?.slice(0, 10)}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                    <span className="break-words">{task.required_hours} horas requeridas</span>
+                  </div>
+                  
+                  <div className="flex items-center">
+                    <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                    <span className="break-words">
+                      Asignado a: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.student?.full_name || 'Sin asignar'}</span>
+                    </span>
+                  </div>
+                  {task.workspace && (
+                    <div className="flex items-center">
+                      <Briefcase className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                      <span className="break-words">
+                        Espacio: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.workspace.name}</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {(task.status === 'submitted' || task.status === 'approved') && (
+                  <button
+                    onClick={() => {
+                      document.body.style.overflow = 'hidden';
+                      setShowEvidenceModal(task);
+                    }}
+                    className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
+                      task.status === 'approved' 
+                        ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
+                        : 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800'
+                    }`}
+                  >
+                    Ver Evidencia
+                  </button>
+                )}
               </div>
-              <div>
-                <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 mb-2">Horas dedicadas:</h3>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  {/* Pill button: horas dedicadas */}
-                  <button
-                    type="button"
-                    className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
-                      ${showEvidenceModal._horasOption === 'dedicadas'
-                        ? 'bg-indigo-600 text-white border-indigo-700 shadow'
-                        : 'bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-200 border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-800'}`}
-                    onClick={() => setShowEvidenceModal({
-                      ...showEvidenceModal,
-                      _horasOption: 'dedicadas',
-                      _adminHours: showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours
-                    })}
-                  >
-                    <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center
-                      "
-                      style={{
-                        borderColor: showEvidenceModal._horasOption === 'dedicadas' ? '#6366f1' : '#cbd5e1',
-                        background: showEvidenceModal._horasOption === 'dedicadas' ? '#6366f1' : 'transparent'
-                      }}
+            ))}
+          </div>
+        )}
+
+        {/* New Task Modal */}
+        {showNewTaskModal && (
+          <TaskForm
+            students={students}
+            onSubmit={handleCreateTask}
+            onClose={handleCloseNewTaskModal}
+            areaId={areaId}
+          />
+        )}
+
+        {/* Evidence Review Modal */}
+        {showEvidenceModal && (
+          <div 
+            className="fixed -inset-6 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50"
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 sm:p-8 max-w-3xl w-full max-h-[100vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">Revisión de Evidencia</h2>
+                <button
+                  onClick={handleCloseEvidenceModal}
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100">Descripción del estudiante:</h3>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">{showEvidenceModal.evidences?.[0]?.description || 'No hay descripción disponible'}</p>
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm sm:text-base text-gray-900 dark:text-gray-100 mb-2">Horas dedicadas:</h3>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    {/* Pill button: horas dedicadas */}
+                    <button
+                      type="button"
+                      className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
+                        ${showEvidenceModal._horasOption === 'dedicadas'
+                          ? 'bg-indigo-600 text-white border-indigo-700 shadow'
+                          : 'bg-white dark:bg-gray-700 text-indigo-700 dark:text-indigo-200 border-gray-300 dark:border-gray-600 hover:bg-indigo-50 dark:hover:bg-gray-800'}`}
+                      onClick={() => setShowEvidenceModal({
+                        ...showEvidenceModal,
+                        _horasOption: 'dedicadas',
+                        _adminHours: showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours
+                      })}
                     >
-                      {showEvidenceModal._horasOption === 'dedicadas' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
-                    </span>
-                    Usar horas dedicadas por el alumno ({showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours} horas)
-                  </button>
-                  {/* Pill button: horas requeridas */}
-                  <button
-                    type="button"
-                    className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
-                      ${showEvidenceModal._horasOption === 'requeridas'
-                        ? 'bg-green-600 text-white border-green-700 shadow'
-                        : 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-200 border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-800'}`}
-                    onClick={() => setShowEvidenceModal({
-                      ...showEvidenceModal,
-                      _horasOption: 'requeridas',
-                      _adminHours: showEvidenceModal.required_hours
-                    })}
-                  >
-                    <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center"
-                      style={{
-                        borderColor: showEvidenceModal._horasOption === 'requeridas' ? '#22c55e' : '#cbd5e1',
-                        background: showEvidenceModal._horasOption === 'requeridas' ? '#22c55e' : 'transparent'
-                      }}
+                      <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center
+                        "
+                        style={{
+                          borderColor: showEvidenceModal._horasOption === 'dedicadas' ? '#6366f1' : '#cbd5e1',
+                          background: showEvidenceModal._horasOption === 'dedicadas' ? '#6366f1' : 'transparent'
+                        }}
+                      >
+                        {showEvidenceModal._horasOption === 'dedicadas' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
+                      </span>
+                      Usar horas dedicadas por el alumno ({showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours} horas)
+                    </button>
+                    {/* Pill button: horas requeridas */}
+                    <button
+                      type="button"
+                      className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
+                        ${showEvidenceModal._horasOption === 'requeridas'
+                          ? 'bg-green-600 text-white border-green-700 shadow'
+                          : 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-200 border-gray-300 dark:border-gray-600 hover:bg-green-50 dark:hover:bg-gray-800'}`}
+                      onClick={() => setShowEvidenceModal({
+                        ...showEvidenceModal,
+                        _horasOption: 'requeridas',
+                        _adminHours: showEvidenceModal.required_hours
+                      })}
                     >
-                      {showEvidenceModal._horasOption === 'requeridas' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
-                    </span>
-                    Usar horas requeridas de la tarea ({showEvidenceModal.required_hours} horas)
-                  </button>
-                  {/* Pill button: otro */}
-                  <button
-                    type="button"
-                    className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
-                      ${showEvidenceModal._horasOption === 'otro'
-                        ? 'bg-yellow-400 text-yellow-900 border-yellow-500 shadow'
-                        : 'bg-white dark:bg-gray-700 text-yellow-700 dark:text-yellow-200 border-gray-300 dark:border-gray-600 hover:bg-yellow-50 dark:hover:bg-gray-800'}`}
-                    onClick={() => setShowEvidenceModal({
-                      ...showEvidenceModal,
-                      _horasOption: 'otro',
-                      _adminHours: showEvidenceModal._adminHours || showEvidenceModal.required_hours
-                    })}
-                  >
-                    <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center"
-                      style={{
-                        borderColor: showEvidenceModal._horasOption === 'otro' ? '#facc15' : '#cbd5e1',
-                        background: showEvidenceModal._horasOption === 'otro' ? '#facc15' : 'transparent'
-                      }}
-                    >
-                      {showEvidenceModal._horasOption === 'otro' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
-                    </span>
-                    Otro:
-                    <input
-                      type="number"
-                      min="1"
-                      className={`ml-2 w-20 border rounded-lg px-2 py-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-colors ${showEvidenceModal._horasOption === 'otro' ? 'border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
-                      value={showEvidenceModal._adminHours !== undefined ? showEvidenceModal._adminHours : showEvidenceModal.required_hours}
-                      onChange={e => setShowEvidenceModal({
+                      <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center"
+                        style={{
+                          borderColor: showEvidenceModal._horasOption === 'requeridas' ? '#22c55e' : '#cbd5e1',
+                          background: showEvidenceModal._horasOption === 'requeridas' ? '#22c55e' : 'transparent'
+                        }}
+                      >
+                        {showEvidenceModal._horasOption === 'requeridas' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
+                      </span>
+                      Usar horas requeridas de la tarea ({showEvidenceModal.required_hours} horas)
+                    </button>
+                    {/* Pill button: otro */}
+                    <button
+                      type="button"
+                      className={`flex items-center px-4 py-2 rounded-full border transition-colors font-semibold text-sm focus:outline-none
+                        ${showEvidenceModal._horasOption === 'otro'
+                          ? 'bg-yellow-400 text-yellow-900 border-yellow-500 shadow'
+                          : 'bg-white dark:bg-gray-700 text-yellow-700 dark:text-yellow-200 border-gray-300 dark:border-gray-600 hover:bg-yellow-50 dark:hover:bg-gray-800'}`}
+                      onClick={() => setShowEvidenceModal({
                         ...showEvidenceModal,
                         _horasOption: 'otro',
-                        _adminHours: Number(e.target.value)
+                        _adminHours: showEvidenceModal._adminHours || showEvidenceModal.required_hours
                       })}
-                      disabled={showEvidenceModal._horasOption !== 'otro'}
-                    />
-                    <span className="ml-1 text-yellow-900 dark:text-yellow-200 text-sm">horas</span>
-                  </button>
+                    >
+                      <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center"
+                        style={{
+                          borderColor: showEvidenceModal._horasOption === 'otro' ? '#facc15' : '#cbd5e1',
+                          background: showEvidenceModal._horasOption === 'otro' ? '#facc15' : 'transparent'
+                        }}
+                      >
+                        {showEvidenceModal._horasOption === 'otro' && <span className="block w-2 h-2 bg-white rounded-full"></span>}
+                      </span>
+                      Otro:
+                      <input
+                        type="number"
+                        min="1"
+                        className={`ml-2 w-20 border rounded-lg px-2 py-1 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-colors ${showEvidenceModal._horasOption === 'otro' ? 'border-yellow-500' : 'border-gray-300 dark:border-gray-600'}`}
+                        value={showEvidenceModal._adminHours !== undefined ? showEvidenceModal._adminHours : showEvidenceModal.required_hours}
+                        onChange={e => setShowEvidenceModal({
+                          ...showEvidenceModal,
+                          _horasOption: 'otro',
+                          _adminHours: Number(e.target.value)
+                        })}
+                        disabled={showEvidenceModal._horasOption !== 'otro'}
+                      />
+                      <span className="ml-1 text-yellow-900 dark:text-yellow-200 text-sm">horas</span>
+                    </button>
+                  </div>
                 </div>
+                {/* Botones de acción y Ver PDF alineados a izquierda y derecha */}
+                {(showEvidenceModal.status !== 'approved' || showEvidenceModal.evidence_pdf_url) && (
+                  <div className="flex flex-col sm:flex-row sm:items-end mt-4 sm:mt-6">
+                    {showEvidenceModal.evidence_pdf_url && (
+                      <div className="flex-1 flex justify-start mb-2 sm:mb-0">
+                        <a
+                          href={showEvidenceModal.evidence_pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base w-full sm:w-auto justify-center"
+                        >
+                          <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                          Ver PDF
+                        </a>
+                      </div>
+                    )}
+                    {showEvidenceModal.status !== 'approved' && (
+                      <div className="flex-1 flex justify-end space-x-2">
+                        <button
+                          onClick={() => handleRejectEvidence(showEvidenceModal.id)}
+                          className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 w-full sm:w-auto text-sm sm:text-base"
+                        >
+                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                          Rechazar
+                        </button>
+                        <button
+                          onClick={() => handleApproveEvidence(
+                            showEvidenceModal.id,
+                            showEvidenceModal.evidences?.[0]?.id,
+                            showEvidenceModal._adminHours !== undefined ? showEvidenceModal._adminHours : (showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours)
+                          )}
+                          className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
+                        >
+                          <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                          Aprobar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              {/* Botones de acción y Ver PDF alineados a izquierda y derecha */}
-              {(showEvidenceModal.status !== 'approved' || showEvidenceModal.evidence_pdf_url) && (
-                <div className="flex flex-col sm:flex-row sm:items-end mt-4 sm:mt-6">
-                  {showEvidenceModal.evidence_pdf_url && (
-                    <div className="flex-1 flex justify-start mb-2 sm:mb-0">
-                      <a
-                        href={showEvidenceModal.evidence_pdf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm sm:text-base w-full sm:w-auto justify-center"
-                      >
-                        <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                        Ver PDF
-                      </a>
-                    </div>
-                  )}
-                  {showEvidenceModal.status !== 'approved' && (
-                    <div className="flex-1 flex justify-end space-x-2">
-                      <button
-                        onClick={() => handleRejectEvidence(showEvidenceModal.id)}
-                        className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 w-full sm:w-auto text-sm sm:text-base"
-                      >
-                        <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                        Rechazar
-                      </button>
-                      <button
-                        onClick={() => handleApproveEvidence(
-                          showEvidenceModal.id,
-                          showEvidenceModal.evidences?.[0]?.id,
-                          showEvidenceModal._adminHours !== undefined ? showEvidenceModal._adminHours : (showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours)
-                        )}
-                        className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
-                      >
-                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                        Aprobar
-                      </button>
-                    </div>
-                  )}
+            </div>
+          </div>
+        )}
+
+        {/* Import Preview Modal */}
+        {importPreview && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto"
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 max-w-[95vw] sm:max-w-2xl w-full max-h-[90vh] sm:max-h-[70vh] flex flex-col shadow-xl my-4">
+              <div className="flex justify-between items-center mb-2 sm:mb-3">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Vista previa de importación
+                </h2>
+                <button
+                  onClick={handleCloseImportPreview}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 p-1"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {previewErrors.length > 0 && (
+                <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg overflow-y-auto max-h-[20vh] sm:max-h-[15vh]">
+                  <div className="flex items-center text-red-700 dark:text-red-400 mb-1">
+                    <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                    <span className="font-semibold text-sm">Errores encontrados:</span>
+                  </div>
+                  <ul className="list-disc list-inside text-xs text-red-600 dark:text-red-400 space-y-0.5">
+                    {previewErrors.map((error, index) => (
+                      <li key={index} className="break-words">{error}</li>
+                    ))}
+                  </ul>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Import Preview Modal */}
-      {importPreview && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 max-w-[95vw] sm:max-w-2xl w-full max-h-[90vh] sm:max-h-[70vh] flex flex-col shadow-xl my-4">
-            <div className="flex justify-between items-center mb-2 sm:mb-3">
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Vista previa de importación
-              </h2>
-              <button
-                onClick={handleCloseImportPreview}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {previewErrors.length > 0 && (
-              <div className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg overflow-y-auto max-h-[20vh] sm:max-h-[15vh]">
-                <div className="flex items-center text-red-700 dark:text-red-400 mb-1">
-                  <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-                  <span className="font-semibold text-sm">Errores encontrados:</span>
-                </div>
-                <ul className="list-disc list-inside text-xs text-red-600 dark:text-red-400 space-y-0.5">
-                  {previewErrors.map((error, index) => (
-                    <li key={index} className="break-words">{error}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div className="flex-1 min-h-0 overflow-auto">
-              <div className="inline-block min-w-full align-middle">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
-                  <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
-                    <tr>
-                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Título</th>
-                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Descripción</th>
-                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Horas</th>
-                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Fecha</th>
-                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Espacio</th>
-                      <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Email Estudiante</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {previewData.map((row, index) => (
-                      <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="text"
-                            value={row.title}
-                            onChange={(e) => handlePreviewEdit(index, 'title', e.target.value)}
-                            className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <textarea
-                            value={row.description}
-                            onChange={(e) => handlePreviewEdit(index, 'description', e.target.value)}
-                            className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[150px]"
-                            rows="1"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="number"
-                            min="1"
-                            value={row.required_hours}
-                            onChange={(e) => handlePreviewEdit(index, 'required_hours', e.target.value)}
-                            className="w-16 border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="date"
-                            value={row.due_date}
-                            onChange={(e) => handlePreviewEdit(index, 'due_date', e.target.value)}
-                            className="border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="text"
-                            value={row.workspace_name}
-                            onChange={(e) => handlePreviewEdit(index, 'workspace_name', e.target.value)}
-                            className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
-                          />
-                        </td>
-                        <td className="px-2 py-1.5">
-                          <input
-                            type="email"
-                            value={row.student_email}
-                            onChange={(e) => handlePreviewEdit(index, 'student_email', e.target.value)}
-                            className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[150px]"
-                          />
-                        </td>
+              <div className="flex-1 min-h-0 overflow-auto">
+                <div className="inline-block min-w-full align-middle">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 text-xs">
+                    <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                      <tr>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Título</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Descripción</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Horas</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Fecha</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Espacio</th>
+                        <th className="px-2 py-1.5 text-left font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Email Estudiante</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {previewData.map((row, index) => (
+                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <td className="px-2 py-1.5">
+                            <input
+                              type="text"
+                              value={row.title}
+                              onChange={(e) => handlePreviewEdit(index, 'title', e.target.value)}
+                              className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <textarea
+                              value={row.description}
+                              onChange={(e) => handlePreviewEdit(index, 'description', e.target.value)}
+                              className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[150px]"
+                              rows="1"
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <input
+                              type="number"
+                              min="1"
+                              value={row.required_hours}
+                              onChange={(e) => handlePreviewEdit(index, 'required_hours', e.target.value)}
+                              className="w-16 border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <input
+                              type="date"
+                              value={row.due_date}
+                              onChange={(e) => handlePreviewEdit(index, 'due_date', e.target.value)}
+                              className="border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <input
+                              type="text"
+                              value={row.workspace_name}
+                              onChange={(e) => handlePreviewEdit(index, 'workspace_name', e.target.value)}
+                              className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[120px]"
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <input
+                              type="email"
+                              value={row.student_email}
+                              onChange={(e) => handlePreviewEdit(index, 'student_email', e.target.value)}
+                              className="w-full border rounded px-1.5 py-1 text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 min-w-[150px]"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={handleCloseImportPreview}
+                  className="px-3 py-2 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm w-full sm:w-auto"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleImportConfirm}
+                  disabled={previewErrors.length > 0 || importing}
+                  className={`px-3 py-2 rounded-lg text-white flex items-center justify-center space-x-2 text-sm w-full sm:w-auto ${
+                    previewErrors.length > 0 || importing
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  {importing ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      <span>Importando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Confirmar Importación</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
-
-            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2 mt-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={handleCloseImportPreview}
-                className="px-3 py-2 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm w-full sm:w-auto"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleImportConfirm}
-                disabled={previewErrors.length > 0 || importing}
-                className={`px-3 py-2 rounded-lg text-white flex items-center justify-center space-x-2 text-sm w-full sm:w-auto ${
-                  previewErrors.length > 0 || importing
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                {importing ? (
-                  <>
-                    <span className="animate-spin">⏳</span>
-                    <span>Importando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    <span>Confirmar Importación</span>
-                  </>
-                )}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -71,7 +71,7 @@ const Login = () => {
   useEffect(() => {
     if (!isLogin && formData.email) {
       const emailDomain = formData.email.split('@')[1];
-      if (emailDomain === '@unitec.edu.hn') {
+      if (emailDomain === 'unitec.edu.hn') {
         setFormData(prev => ({ ...prev, role: 'admin' }));
       } else if (emailDomain === 'unitec.edu') {
         setFormData(prev => ({ ...prev, role: 'student' }));
@@ -101,12 +101,18 @@ const Login = () => {
     handleLogoutRedirect();
   }, []);
 
+  useEffect(() => {
+    let timer;
+    if (notification) {
+      timer = setTimeout(() => {
+        setNotification(null);
+      }, 2000);
+    }
+    return () => clearTimeout(timer);
+  }, [notification]);
+
   const showNotification = (type, message) => {
     setNotification({ type, message });
-    // Auto cerrar después de 5 segundos
-    setTimeout(() => {
-      setNotification(null);
-    }, 5000);
   };
 
   const getErrorMessage = (error) => {

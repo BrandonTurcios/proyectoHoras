@@ -20,7 +20,9 @@ import {
   Clock,
   X,
   ExternalLink,
-  Briefcase
+  Briefcase,
+  LayoutGrid,
+  ListIcon
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
@@ -29,6 +31,7 @@ const BossDashboard = () => {
   const [admins, setAdmins] = useState([]);
   const [areas, setAreas] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [students, setStudents] = useState([]);
   
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -41,7 +44,6 @@ const BossDashboard = () => {
     name: ''
   });
   const [requests, setRequests] = useState([]);
-  const [students, setStudents] = useState([]);
   const [areaToDelete, setAreaToDelete] = useState(null);
   const [isDeleteAreaModalOpen, setIsDeleteAreaModalOpen] = useState(false);
  
@@ -117,11 +119,15 @@ const BossDashboard = () => {
 
   const fetchStudents = async () => {
     try {
-      const { data, error } = await supabase.from('users').select('id, full_name, role');
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'student');
+
       if (error) throw error;
       if (data) setStudents(data);
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.error("Error fetching students:", error);
     }
   };
 
@@ -245,7 +251,9 @@ const BossDashboard = () => {
       case 'requests':
         return <RequestsList requests={requests} areas={areas} students={students} onApprove={handleApproveRequest} onReject={handleRejectRequest} />;
       case 'tasks':
-        return <TasksList tasks={tasks} admins={admins} />;
+        return <TasksList tasks={tasks} admins={admins} students={students} />;
+      case 'students':
+        return <StudentsList students={students} areas={areas} />;
       default:
         return null;
     }
@@ -318,6 +326,18 @@ const BossDashboard = () => {
             >
               <Users className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
               <span className="text-lg sm:text-base">Administradores</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('students');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+                activeTab === 'students' ? 'bg-indigo-50 text-indigo-600' : ''
+              }`}
+            >
+              <Users className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Becados</span>
             </button>
             <button
               onClick={() => {
@@ -786,11 +806,13 @@ const RequestsList = ({ requests, areas, students, onApprove, onReject }) => {
 };
 
 // Update TasksList component
-const TasksList = ({ tasks, admins }) => {
+const TasksList = ({ tasks, admins, students }) => {
   const [filter, setFilter] = useState('all');
   const [selectedAdmin, setSelectedAdmin] = useState('all');
+  const [selectedStudent, setSelectedStudent] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTask, setSelectedTask] = useState(null);
+  const [compactView, setCompactView] = useState(false);
 
   const isTaskOverdue = (dueDate) => {
     const today = new Date();
@@ -803,9 +825,10 @@ const TasksList = ({ tasks, admins }) => {
   const filteredTasks = tasks.filter(task => {
     const matchesFilter = filter === 'all' || task.status === filter;
     const matchesAdmin = selectedAdmin === 'all' || task.admin_id === selectedAdmin;
+    const matchesStudent = selectedStudent === 'all' || task.student_id === selectedStudent;
     const matchesSearch = task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          task.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesFilter && matchesAdmin && matchesSearch;
+    return matchesFilter && matchesAdmin && matchesStudent && matchesSearch;
   });
 
   return (
@@ -843,95 +866,180 @@ const TasksList = ({ tasks, admins }) => {
             </option>
           ))}
         </select>
+        <select
+          value={selectedStudent}
+          onChange={(e) => setSelectedStudent(e.target.value)}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+        >
+          <option value="all">Todos los estudiantes</option>
+          {students.map(student => (
+            <option key={student.id} value={student.id}>
+              {student.full_name}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => setCompactView(v => !v)}
+          className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900"
+          title={compactView ? 'Vista de tarjetas' : 'Vista de lista'}
+        >
+          {compactView ? (
+            <LayoutGrid className="w-4 h-4" />
+          ) : (
+            <ListIcon className="w-4 h-4" />
+          )}
+          <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTasks.map(task => (
-          <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-md hover:shadow-xl transition-shadow border border-indigo-100 dark:border-gray-700 flex flex-col h-full">
-            <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
-              <div className="relative group flex-1 min-w-0">
-                <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate" title={task.title}>
-                  {task.title}
-                </h3>
-                {/* Tooltip for long titles */}
+      {filteredTasks.length === 0 ? (
+        <div className="text-gray-500">No hay tareas para mostrar.</div>
+      ) : compactView ? (
+        // Vista de lista compacta
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-indigo-200 dark:divide-gray-700 text-sm">
+            <thead className="bg-indigo-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Título</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Descripción</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estudiante</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Administrador</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estado</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Entrega</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Horas</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Espacio</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-indigo-100 dark:divide-gray-800">
+              {filteredTasks.map(task => (
+                <tr key={task.id} className="hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors">
+                  <td className="px-3 py-2 font-medium text-indigo-900 dark:text-indigo-100 max-w-[180px] truncate" title={task.title}>{task.title}</td>
+                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300 max-w-[220px] truncate" title={task.description}>{task.description}</td>
+                  <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.student?.full_name || 'Sin asignar'}</td>
+                  <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.admin?.full_name || 'Sin asignar'}</td>
+                  <td className="px-3 py-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      task.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                      task.status === 'submitted' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                    }`}>
+                      {task.status === 'approved' ? 'Aprobada' :
+                       task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.due_date?.slice(0, 10)}</td>
+                  <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.required_hours}</td>
+                  <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.workspace?.name || 'Sin espacio'}</td>
+                  <td className="px-3 py-2">
+                    {(task.status === 'submitted' || task.status === 'approved') && (
+                      <button
+                        onClick={() => setSelectedTask(task)}
+                        className={`px-3 py-1 rounded-lg text-white text-xs font-semibold shadow transition-all ${
+                          task.status === 'approved'
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        Ver Evidencia
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        // Vista de tarjetas (actual)
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredTasks.map(task => (
+            <div key={task.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
+              <div className="flex flex-wrap items-start mb-3 sm:mb-4 gap-2 w-full">
+                <div className="relative group flex-1 min-w-0">
+                  <h3 className="font-bold text-lg sm:text-xl text-indigo-800 dark:text-indigo-300 break-words flex-1 min-w-0 truncate" title={task.title}>
+                    {task.title}
+                  </h3>
+                  {/* Tooltip for long titles */}
+                  <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                    {task.title}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
+                  task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
+                  task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
+                  'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
+                }`}>
+                  {task.status === 'approved' ? 'Aprobada' :
+                   task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
+                </span>
+                  {isTaskOverdue(task.due_date) && task.status === 'pending' && (
+                    <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white">
+                      Atrasada
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="relative group mb-3 sm:mb-4">
+                <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg line-clamp-3" title={task.description}>
+                  {task.description}
+                </p>
+                {/* Tooltip for long descriptions */}
                 <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
-                  {task.title}
-              </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-              <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md max-w-full truncate ${
-                task.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white' :
-                task.status === 'submitted' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
-                'bg-gradient-to-r from-yellow-300 to-yellow-500 text-yellow-900 dark:text-yellow-100'
-              }`}>
-                {task.status === 'approved' ? 'Aprobada' :
-                 task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
-              </span>
-                {isTaskOverdue(task.due_date) && task.status === 'pending' && (
-                  <span className="px-3 py-1 rounded-full text-xs sm:text-sm font-semibold shadow-md bg-gradient-to-r from-red-400 to-red-600 text-white">
-                    Atrasada
-                  </span>
-                )}
-            </div>
-            </div>
-            <div className="relative group mb-3 sm:mb-4">
-              <p className="text-gray-700 dark:text-gray-300 text-base sm:text-lg line-clamp-3" title={task.description}>
-                {task.description}
-              </p>
-              {/* Tooltip for long descriptions */}
-              <div className="hidden group-hover:block absolute left-0 top-full z-10 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
-                {task.description}
-              </div>
-            </div>
-            <div className="space-y-3 text-xs sm:text-sm mt-auto">
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">Entrega: {task.due_date?.slice(0, 10)}</span>
-              </div>
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">{task.required_hours} horas requeridas</span>
-              </div>
-              <div className="flex items-center">
-                <Briefcase className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                <span className="break-words">Espacio: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.workspace?.name || 'Sin espacio'}</span></span>
-              </div>
-              <div className="bg-indigo-100/80 dark:bg-indigo-900/30 p-3 rounded-lg border-2 border-indigo-200 dark:border-indigo-800 shadow-sm">
-                <div className="flex items-center mb-2">
-                  <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
-                  <span className="text-indigo-700 dark:text-indigo-300 font-medium">Asignación</span>
+                  {task.description}
                 </div>
-                <div className="space-y-2 pl-6">
-                  <div className="flex items-center">
-                    <span className="text-gray-700 dark:text-gray-400">Estudiante:</span>
-                    <span className="ml-2 font-semibold text-indigo-800 dark:text-indigo-300">
-                      {task.student?.full_name || 'Sin asignar'}
-                    </span>
+              </div>
+              <div className="space-y-3 text-xs sm:text-sm mt-auto">
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                  <span className="break-words">Entrega: {task.due_date?.slice(0, 10)}</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                  <span className="break-words">{task.required_hours} horas requeridas</span>
+                </div>
+                <div className="flex items-center">
+                  <Briefcase className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
+                  <span className="break-words">Espacio: <span className="font-bold text-indigo-700 dark:text-indigo-400">{task.workspace?.name || 'Sin espacio'}</span></span>
+                </div>
+                <div className="bg-indigo-100/80 dark:bg-indigo-900/30 p-3 rounded-lg border-2 border-indigo-200 dark:border-indigo-800 shadow-sm">
+                  <div className="flex items-center mb-2">
+                    <User className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />
+                    <span className="text-indigo-700 dark:text-indigo-300 font-medium">Asignación</span>
                   </div>
-                  <div className="flex items-center">
-                    <span className="text-gray-700 dark:text-gray-400">Administrador:</span>
-                    <span className="ml-2 font-semibold text-indigo-800 dark:text-indigo-300">
-                      {task.admin?.full_name || 'Sin asignar'}
-                    </span>
+                  <div className="space-y-2 pl-6">
+                    <div className="flex items-center">
+                      <span className="text-gray-700 dark:text-gray-400">Estudiante:</span>
+                      <span className="ml-2 font-semibold text-indigo-800 dark:text-indigo-300">
+                        {task.student?.full_name || 'Sin asignar'}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-gray-700 dark:text-gray-400">Administrador:</span>
+                      <span className="ml-2 font-semibold text-indigo-800 dark:text-indigo-300">
+                        {task.admin?.full_name || 'Sin asignar'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
+              {(task.status === 'submitted' || task.status === 'approved') && (
+                <button
+                  onClick={() => setSelectedTask(task)}
+                  className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
+                    task.status === 'approved' 
+                      ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
+                      : 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800'
+                  }`}
+                >
+                  Ver Evidencia
+                </button>
+              )}
             </div>
-            {(task.status === 'submitted' || task.status === 'approved') && (
-              <button
-                onClick={() => setSelectedTask(task)}
-                className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
-                  task.status === 'approved' 
-                    ? 'bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800' 
-                    : 'bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800'
-                }`}
-              >
-                Ver Evidencia
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Evidence Modal */}
       {selectedTask && (
@@ -967,6 +1075,156 @@ const TasksList = ({ tasks, admins }) => {
               )}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Componente de lista de estudiantes
+const StudentsList = ({ students, areas }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [compactView, setCompactView] = useState(false);
+
+  const filteredStudents = students
+    .filter(student => 
+      student.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.full_name.localeCompare(b.full_name);
+      } else if (sortBy === 'hours') {
+        return b.current_hours - a.current_hours;
+      }
+      return 0;
+    });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Buscar estudiantes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          />
+          <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+        </div>
+        <div className="flex gap-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="name">Ordenar por nombre</option>
+            <option value="hours">Ordenar por horas</option>
+          </select>
+          <button
+            onClick={() => setCompactView(v => !v)}
+            className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900"
+            title={compactView ? 'Vista de tarjetas' : 'Vista de lista'}
+          >
+            {compactView ? (
+              <LayoutGrid className="w-4 h-4" />
+            ) : (
+              <ListIcon className="w-4 h-4" />
+            )}
+            <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
+          </button>
+        </div>
+      </div>
+
+      {filteredStudents.length === 0 ? (
+        <div className="text-gray-500">No hay estudiantes para mostrar.</div>
+      ) : compactView ? (
+        // Vista de lista compacta
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-indigo-200 dark:divide-gray-700 text-sm">
+            <thead className="bg-indigo-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Nombre</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Email</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Área</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Progreso</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Horas</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estado</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-indigo-100 dark:divide-gray-800">
+              {filteredStudents.map(student => {
+                const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
+                const isCompleted = student.current_hours >= student.hours_required;
+                const progress = (student.current_hours / student.hours_required) * 100;
+                
+                return (
+                  <tr key={student.id} className="hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors">
+                    <td className="px-3 py-2 font-medium text-indigo-900 dark:text-indigo-100">{student.full_name}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{student.email}</td>
+                    <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{areaName || 'Sin asignar'}</td>
+                    <td className="px-3 py-2">
+                      <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${isCompleted ? 'bg-green-500' : 'bg-indigo-400'}`}
+                          style={{ width: `${Math.min(100, progress)}%` }}
+                        ></div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">
+                      {student.current_hours} / {student.hours_required}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        isCompleted ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
+                      }`}>
+                        {isCompleted ? 'Completado' : 'En progreso'}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        // Vista de tarjetas (actual)
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredStudents.map(student => {
+            const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
+            const isCompleted = student.current_hours >= student.hours_required;
+            const progress = (student.current_hours / student.hours_required) * 100;
+            const progressColor = isCompleted ? 'bg-green-500' : 'bg-indigo-400';
+            
+            return (
+              <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
+                <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
+                <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
+                <div className="mt-3 sm:mt-4">
+                  <div className="flex justify-between mb-1">
+                    <span className={`text-xs sm:text-sm font-medium ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                      {isCompleted ? 'COMPLETADO' : 'Progreso de horas'}
+                    </span>
+                    <span className={`text-xs sm:text-sm font-bold ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                      {Math.round(progress)}%
+                    </span>
+                  </div>
+                  <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                    <div
+                      style={{ width: `${Math.min(100, progress)}%` }}
+                      className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${progressColor}`}
+                    ></div>
+                  </div>
+                  <div className={`mt-1 sm:mt-2 text-xs sm:text-sm ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                    {student.current_hours} de {student.hours_required} horas completadas
+                  </div>
+                  <div className="mt-2 text-sm text-gray-600">
+                    Área: {areaName || 'Sin asignar'}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
