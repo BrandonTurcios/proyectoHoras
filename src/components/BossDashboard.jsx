@@ -247,7 +247,7 @@ const BossDashboard = () => {
         return <AreasList areas={areas} setIsAddAreaModalOpen={setIsAddAreaModalOpen} setAreaToDelete={setAreaToDelete} setIsDeleteAreaModalOpen={setIsDeleteAreaModalOpen} />;
         
       case 'statistics':
-        return <Statistics admins={admins} areas={areas} />;
+        return <Statistics admins={admins} areas={areas} students={students} />;
       case 'requests':
         return <RequestsList requests={requests} areas={areas} students={students} onApprove={handleApproveRequest} onReject={handleRejectRequest} />;
       case 'tasks':
@@ -589,16 +589,22 @@ const BossDashboard = () => {
 // Componente de lista de administradores
 const AdminsList = ({ admins, areas, onAssignArea }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedArea, setSelectedArea] = useState('all');
+  const [compactView, setCompactView] = useState(false);
 
-  const filteredAdmins = admins.filter(admin =>
-    admin.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    admin.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAdmins = admins
+    .filter(admin =>
+      admin.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.email.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter(admin =>
+      selectedArea === 'all' ? true : admin.internship_area === selectedArea
+    );
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="relative">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="relative flex-1">
           <input
             type="text"
             placeholder="Buscar administradores..."
@@ -608,31 +614,112 @@ const AdminsList = ({ admins, areas, onAssignArea }) => {
           />
           <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400 dark:text-gray-500" />
         </div>
+        <div className="flex gap-2">
+          <select
+            value={selectedArea}
+            onChange={e => setSelectedArea(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          >
+            <option value="all">Todas las áreas</option>
+            {areas.map(area => (
+              <option key={area.id} value={area.id}>{area.name}</option>
+            ))}
+            <option value="">Sin asignar</option>
+          </select>
+          <button
+            onClick={() => setCompactView(v => !v)}
+            className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900"
+            title={compactView ? 'Vista de tarjetas' : 'Vista de lista'}
+          >
+            {compactView ? (
+              <LayoutGrid className="w-4 h-4" />
+            ) : (
+              <ListIcon className="w-4 h-4" />
+            )}
+            <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredAdmins.map(admin => (
-          <div key={admin.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-md border border-indigo-100 dark:border-gray-700">
-            <h3 className="font-bold text-lg text-indigo-800 dark:text-indigo-300 mb-1">{admin.full_name}</h3>
-            <p className="text-indigo-500 dark:text-indigo-400 text-sm mb-4">{admin.email}</p>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Área Asignada</label>
-              <select
-                value={admin.internship_area || ''}
-                onChange={(e) => onAssignArea(admin.id, e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+      {filteredAdmins.length === 0 ? (
+        <div className="text-gray-500">No hay administradores para mostrar.</div>
+      ) : compactView ? (
+        // Vista de lista compacta
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-indigo-200 dark:divide-gray-700 text-sm">
+            <thead className="bg-indigo-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Nombre</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Email</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Área</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Asignar Área</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-indigo-100 dark:divide-gray-800">
+              {filteredAdmins.map(admin => {
+                const areaName = areas && areas.find(a => a.id === admin.internship_area)?.name;
+                return (
+                  <tr key={admin.id} className="hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors">
+                    <td className="px-3 py-2 font-medium text-indigo-900 dark:text-indigo-100">{admin.full_name}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{admin.email}</td>
+                    <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{areaName || 'Sin asignar'}</td>
+                    <td className="px-3 py-2">
+                      <select
+                        value={admin.internship_area || ''}
+                        onChange={(e) => onAssignArea(admin.id, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      >
+                        <option value="">Sin asignar</option>
+                        {areas.map(area => (
+                          <option key={area.id} value={area.id}>
+                            {area.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        // Vista de tarjetas (actual)
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAdmins.map(admin => {
+            const areaName = areas && areas.find(a => a.id === admin.internship_area)?.name;
+            return (
+              <div
+                key={admin.id}
+                className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full"
               >
-                <option value="">Sin asignar</option>
-                {areas.map(area => (
-                  <option key={area.id} value={area.id}>
-                    {area.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        ))}
-      </div>
+                <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{admin.full_name}</h3>
+                <p className="text-indigo-500 text-sm mb-2 truncate">{admin.email}</p>
+                <div className="mt-3 sm:mt-4">
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Área Asignada</label>
+                    <select
+                      value={admin.internship_area || ''}
+                      onChange={(e) => onAssignArea(admin.id, e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="">Sin asignar</option>
+                      {areas.map(area => (
+                        <option key={area.id} value={area.id}>
+                          {area.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-2 text-base text-gray-600">
+                    Área asignada: {areaName || 'Sin asignar'}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
@@ -669,25 +756,62 @@ const AreasList = ({ areas, setIsAddAreaModalOpen, setAreaToDelete, setIsDeleteA
   );
 };
 
-// Componente de estadísticas
-const Statistics = ({ admins, areas }) => {
+// Componente de estadísticas mejorado
+const Statistics = ({ admins, areas, students }) => {
   const totalAdmins = admins.length;
   const totalAreas = areas.length;
   const assignedAdmins = admins.filter(admin => admin.internship_area).length;
+
+  const totalStudents = students.length;
+  const assignedStudents = students.filter(student => student.internship_area).length;
+  const completedStudents = students.filter(student => student.current_hours >= student.hours_required).length;
+  const inProgressStudents = totalStudents - completedStudents;
+  const avgHours = totalStudents > 0
+    ? Math.round(students.reduce((sum, s) => sum + (s.current_hours || 0), 0) / totalStudents)
+    : 0;
+
+  // Áreas con más/menos becados
+  const areaStudentCounts = areas.map(area => ({
+    name: area.name,
+    count: students.filter(s => s.internship_area === area.id).length
+  }));
+  const mostPopulatedArea = areaStudentCounts.reduce((max, a) => a.count > max.count ? a : max, {name: '', count: 0});
+  const leastPopulatedArea = areaStudentCounts.reduce((min, a) => (a.count < min.count ? a : min), {name: '', count: Infinity});
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
         <h3 className="text-lg font-bold text-indigo-800 mb-2">Total de Administradores</h3>
         <p className="text-3xl font-bold text-indigo-600">{totalAdmins}</p>
+        <p className="text-sm text-gray-500 mt-2">{assignedAdmins} asignados a un área</p>
+      </div>
+      <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
+        <h3 className="text-lg font-bold text-indigo-800 mb-2">Total de Becados</h3>
+        <p className="text-3xl font-bold text-indigo-600">{totalStudents}</p>
+        <p className="text-sm text-gray-500 mt-2">{assignedStudents} asignados a un área</p>
       </div>
       <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
         <h3 className="text-lg font-bold text-indigo-800 mb-2">Total de Áreas</h3>
         <p className="text-3xl font-bold text-indigo-600">{totalAreas}</p>
       </div>
       <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
-        <h3 className="text-lg font-bold text-indigo-800 mb-2">Administradores Asignados</h3>
-        <p className="text-3xl font-bold text-indigo-600">{assignedAdmins}</p>
+        <h3 className="text-lg font-bold text-indigo-800 mb-2">Becados Completados</h3>
+        <p className="text-3xl font-bold text-green-600">{completedStudents}</p>
+        <p className="text-sm text-gray-500 mt-2">{inProgressStudents} en progreso</p>
+      </div>
+      <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
+        <h3 className="text-lg font-bold text-indigo-800 mb-2">Promedio de Horas Completadas</h3>
+        <p className="text-3xl font-bold text-indigo-600">{avgHours}</p>
+        <p className="text-sm text-gray-500 mt-2">por becado</p>
+      </div>
+      <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
+        <h3 className="text-lg font-bold text-indigo-800 mb-2">Áreas con más/menos becados</h3>
+        <p className="text-sm text-gray-700 mb-1">
+          <span className="font-semibold text-green-700">Más:</span> {mostPopulatedArea.name || 'N/A'} ({mostPopulatedArea.count})
+        </p>
+        <p className="text-sm text-gray-700">
+          <span className="font-semibold text-red-700">Menos:</span> {leastPopulatedArea.name || 'N/A'} ({leastPopulatedArea.count === Infinity ? 0 : leastPopulatedArea.count})
+        </p>
       </div>
     </div>
   );
@@ -1218,8 +1342,8 @@ const StudentsList = ({ students, areas }) => {
                   <div className={`mt-1 sm:mt-2 text-xs sm:text-sm ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
                     {student.current_hours} de {student.hours_required} horas completadas
                   </div>
-                  <div className="mt-2 text-sm text-gray-600">
-                    Área: {areaName || 'Sin asignar'}
+                  <div className="mt-2 text-base text-gray-600">
+                    Área asignada: {areaName || 'Sin asignar'}
                   </div>
                 </div>
               </div>
