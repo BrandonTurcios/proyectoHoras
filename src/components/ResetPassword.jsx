@@ -76,17 +76,7 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      // Obtener el token de la URL
-      const params = new URLSearchParams(location.search);
-      const token = params.get('token');
-
-      if (!token) {
-        showNotification('error', 'Token de reseteo no válido');
-        setLoading(false);
-        return;
-      }
-
-      // Actualizar la contraseña usando Supabase
+      // No necesitas token, solo actualiza la contraseña
       const { error } = await supabase.auth.updateUser({
         password: password
       });
@@ -96,8 +86,6 @@ const ResetPassword = () => {
       }
 
       showNotification('success', 'Contraseña actualizada exitosamente');
-      
-      // Redirigir al login después de 2 segundos
       setTimeout(() => {
         navigate('/login');
       }, 2000);
