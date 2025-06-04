@@ -1,5 +1,6 @@
 // src/App.jsx
 import { useEffect } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import Router from './Router'
@@ -15,11 +16,13 @@ const App = () => {
   }, []);
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router />
-      </AuthProvider>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router />
+        </AuthProvider>
+      </ThemeProvider>
+    </BrowserRouter>
   );
 };
 
