@@ -22,9 +22,36 @@ import {
   ExternalLink,
   Briefcase,
   LayoutGrid,
-  ListIcon
+  ListIcon,
+  AlertTriangle
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import * as XLSX from 'xlsx';
+
+// Notification component (copiado de Login.jsx)
+const Notification = ({ type, message, onClose }) => {
+  const isError = type === 'error';
+  return (
+    <div className="fixed top-4 right-4 z-50 animate-fade-in-up">
+      <div className={`rounded-lg shadow-lg p-4 flex items-center space-x-3 ${
+        isError ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'
+      }`}>
+        <div className={`flex-shrink-0 ${isError ? 'text-red-600' : 'text-green-600'}`}> 
+          {isError ? <AlertTriangle className="w-6 h-6" /> : <CheckCircle className="w-6 h-6" />} 
+        </div>
+        <div className="flex-1">
+          <p className={`text-sm font-medium ${isError ? 'text-red-800' : 'text-green-800'}`}>{message}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className={`flex-shrink-0 p-1 rounded-full hover:bg-opacity-20 ${isError ? 'hover:bg-red-200' : 'hover:bg-green-200'}`}
+        >
+          <X className={`w-4 h-4 ${isError ? 'text-red-600' : 'text-green-600'}`} />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const BossDashboard = () => {
   const [activeTab, setActiveTab] = useState('admins');
@@ -46,7 +73,9 @@ const BossDashboard = () => {
   const [requests, setRequests] = useState([]);
   const [areaToDelete, setAreaToDelete] = useState(null);
   const [isDeleteAreaModalOpen, setIsDeleteAreaModalOpen] = useState(false);
- 
+  const [dangerLoading, setDangerLoading] = useState(false);
+  const [dangerMessage, setDangerMessage] = useState('');
+  const [notification, setNotification] = useState(null);
 
   const { userData, signOut } = useAuth();
 
@@ -75,6 +104,16 @@ const BossDashboard = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    let timer;
+    if (notification) {
+      timer = setTimeout(() => {
+        setNotification(null);
+      }, 4000);
+    }
+    return () => clearTimeout(timer);
+  }, [notification]);
 
   const fetchAdmins = async () => {
     try {
@@ -217,8 +256,10 @@ const BossDashboard = () => {
       setIsAddAreaModalOpen(false);
       setNewArea({ name: '' });
       await fetchAreas();
+      setNotification({ type: 'success', message: '¡Área creada exitosamente!' });
     } catch (error) {
       console.error('Error agregando área:', error);
+      setNotification({ type: 'error', message: 'Error al crear área: ' + (error.message || error) });
     }
   };
 
@@ -238,6 +279,149 @@ const BossDashboard = () => {
     }
   };
 
+  // Danger Zone functions
+  const handleDangerClean = async (action) => {
+    setDangerLoading(true);
+    setDangerMessage('');
+    setNotification(null);
+    try {
+      if (action === 'truncate') {
+        setNotification({ type: 'success', message: '¡Tablas limpiadas exitosamente!' });
+        await new Promise(r => setTimeout(r, 400));
+        await Promise.all([
+          supabase.from('evidences').delete().neq('id', 0),
+          supabase.from('student_availability').delete().neq('id', 0),
+          supabase.from('tasks').delete().neq('id', 0),
+          supabase.from('area_change_requests').delete().neq('id', 0),
+        ]);
+      } else if (action === 'reset_hours') {
+        setNotification({ type: 'success', message: '¡Horas de los estudiantes reiniciadas a 0!' });
+        await new Promise(r => setTimeout(r, 400));
+        await supabase.from('users').update({ current_hours: 0 }).eq('role', 'student');
+      }
+      await Promise.all([
+        fetchRequests(),
+        fetchStudents(),
+        fetchAllTasks()
+      ]);
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Error: ' + error.message });
+    } finally {
+      setDangerLoading(false);
+    }
+  };
+
+  // Exportar Excel
+  const handleExportExcel = async () => {
+    setDangerLoading(true);
+    setDangerMessage('');
+    setNotification(null);
+    try {
+      const [usersRes, areasRes, tasksRes, evidencesRes, availRes, requestsRes, workspacesRes] = await Promise.all([
+        supabase.from('users').select('*'),
+        supabase.from('areas').select('*'),
+        supabase.from('tasks').select('*'),
+        supabase.from('evidences').select('*'),
+        supabase.from('student_availability').select('*'),
+        supabase.from('area_change_requests').select('*'),
+        supabase.from('workspaces').select('*'),
+      ]);
+      const users = usersRes.data || [];
+      const areas = areasRes.data || [];
+      const tasks = tasksRes.data || [];
+      const evidences = evidencesRes.data || [];
+      const avail = availRes.data || [];
+      const requests = requestsRes.data || [];
+      const workspaces = workspacesRes.data || [];
+
+      // 2. Procesar relaciones para que sean legibles
+      const areaMap = Object.fromEntries(areas.map(a => [a.id, a.name]));
+      const userMap = Object.fromEntries(users.map(u => [u.id, u.full_name]));
+      const workspaceMap = Object.fromEntries(workspaces.map(w => [w.id, w.name]));
+
+      // Usuarios
+      const usersSheet = users.map(u => ({
+        'ID': u.id,
+        'Correo': u.email,
+        'Rol': u.role,
+        'Nombre completo': u.full_name,
+        'Área de pasantía': areaMap[u.internship_area] || '',
+        'Horas requeridas': u.hours_required,
+        'Horas completadas': u.current_hours
+      }));
+      // Áreas
+      const areasSheet = areas.map(a => ({
+        'ID': a.id,
+        'Nombre': a.name
+      }));
+      // Tareas
+      const tasksSheet = tasks.map(t => ({
+        'ID': t.id,
+        'Título': t.title,
+        'Descripción': t.description,
+        'Horas requeridas': t.required_hours,
+        'Fecha de entrega': t.due_date,
+        'Estudiante': userMap[t.student_id] || t.student_id,
+        'Administrador': userMap[t.admin_id] || t.admin_id,
+        'Estado': t.status,
+        'Espacio': workspaceMap[t.workspace_id] || t.workspace_id,
+        'Fecha de creación': t.created_at,
+        'URL de evidencia PDF': t.evidence_pdf_url
+      }));
+      // Evidencias
+      const evidencesSheet = evidences.map(e => ({
+        'ID': e.id,
+        'Tarea': tasks.find(t => t.id === e.task_id)?.title || e.task_id,
+        'Estudiante': userMap[e.student_id] || e.student_id,
+        'Descripción': e.description,
+        'Horas dedicadas': e.hours_spent,
+        'Fecha de envío': e.submitted_at
+      }));
+      // Disponibilidad
+      const availSheet = avail.map(a => ({
+        'ID': a.id,
+        'Estudiante': userMap[a.student_id] || a.student_id,
+        'Día de la semana': a.day_of_week,
+        'Hora de inicio': a.start_time,
+        'Hora de fin': a.end_time
+      }));
+      // Solicitudes de cambio de área
+      const requestsSheet = requests.map(r => ({
+        'ID': r.id,
+        'Estudiante': userMap[r.student_id] || r.student_id,
+        'Área actual': areaMap[r.current_area] || r.current_area,
+        'Razón': r.reason,
+        'Estado': r.status,
+        'Fecha de solicitud': r.created_at,
+        'Fecha de revisión': r.reviewed_at,
+        'Revisado por': userMap[r.reviewed_by] || r.reviewed_by
+      }));
+      // Espacios
+      const workspacesSheet = workspaces.map(w => ({
+        'ID': w.id,
+        'Nombre': w.name,
+        'Área': areaMap[w.area_id] || w.area_id
+      }));
+
+      // 3. Crear el libro de Excel
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(usersSheet), 'Usuarios');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(areasSheet), 'Áreas');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(tasksSheet), 'Tareas');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(evidencesSheet), 'Evidencias');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(availSheet), 'Disponibilidad');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(requestsSheet), 'Solicitudes de área');
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(workspacesSheet), 'Espacios');
+
+      // 4. Descargar el archivo
+      XLSX.writeFile(wb, 'reporte_completo_bd.xlsx');
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Error al exportar: ' + error.message });
+    } finally {
+      setDangerLoading(false);
+    }
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'admins':
@@ -254,6 +438,8 @@ const BossDashboard = () => {
         return <TasksList tasks={tasks} admins={admins} students={students} />;
       case 'students':
         return <StudentsList students={students} areas={areas} />;
+      case 'danger':
+        return <DangerZone onDangerClean={handleDangerClean} loading={dangerLoading} onExportExcel={handleExportExcel} />;
       default:
         return null;
     }
@@ -387,6 +573,23 @@ const BossDashboard = () => {
             >
               <Mail className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
               <span className="text-lg sm:text-base">Solicitudes</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('danger');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4
+                text-gray-600 dark:text-red-300
+                hover:bg-red-50 hover:text-red-600
+                dark:hover:bg-red-900/30 dark:hover:text-red-300
+                ${activeTab === 'danger'
+                  ? 'bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                  : ''}
+              `}
+            >
+              <AlertTriangle className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base font-bold">Zona de peligro</span>
             </button>
           </div>
         </nav>
@@ -711,9 +914,7 @@ const AdminsList = ({ admins, areas, onAssignArea }) => {
                       ))}
                     </select>
                   </div>
-                  <div className="mt-2 text-base text-gray-600">
-                    Área asignada: {areaName || 'Sin asignar'}
-                  </div>
+                
                 </div>
               </div>
             );
@@ -726,32 +927,78 @@ const AdminsList = ({ admins, areas, onAssignArea }) => {
 
 // Componente de lista de áreas (solo muestra las dummy)
 const AreasList = ({ areas, setIsAddAreaModalOpen, setAreaToDelete, setIsDeleteAreaModalOpen }) => {
+  const [compactView, setCompactView] = useState(false);
   const sortedAreas = [...areas].sort((a, b) => a.name.localeCompare(b.name));
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-xl font-bold text-indigo-700 dark:text-indigo-200">Áreas de Pasantía</h2>
-        <button
-          onClick={() => setIsAddAreaModalOpen(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-        >
-          Agregar Área
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsAddAreaModalOpen(true)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            Agregar Área
+          </button>
+          <button
+            onClick={() => setCompactView(v => !v)}
+            className="border border-indigo-300 dark:border-indigo-700 bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 px-3 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-indigo-50 dark:hover:bg-gray-900"
+            title={compactView ? 'Vista de tarjetas' : 'Vista de lista'}
+          >
+            {compactView ? (
+              <LayoutGrid className="w-4 h-4" />
+            ) : (
+              <ListIcon className="w-4 h-4" />
+            )}
+            <span>{compactView ? 'Tarjetas' : 'Lista'}</span>
+          </button>
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-        {sortedAreas.map(area => (
-          <div key={area.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-indigo-100 dark:border-indigo-700 min-h-[70px] flex flex-col justify-center transition-colors relative group">
-            <h3 className="font-bold text-base text-indigo-800 dark:text-indigo-200 mb-1 break-words">{area.name}</h3>
-            <button
-              title="Eliminar área"
-              onClick={() => { setAreaToDelete(area); setIsDeleteAreaModalOpen(true); }}
-              className="absolute top-2 right-2 p-1 rounded-full bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-700 text-red-600 dark:text-red-300 transition-opacity opacity-80 group-hover:opacity-100"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
-      </div>
+      {compactView ? (
+        // Vista de lista compacta
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-indigo-200 dark:divide-gray-700 text-sm">
+            <thead className="bg-indigo-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Nombre del Área</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-indigo-100 dark:divide-gray-800">
+              {sortedAreas.map(area => (
+                <tr key={area.id} className="hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors">
+                  <td className="px-3 py-2 font-medium text-indigo-900 dark:text-indigo-100">{area.name}</td>
+                  <td className="px-3 py-2">
+                    <button
+                      onClick={() => { setAreaToDelete(area); setIsDeleteAreaModalOpen(true); }}
+                      className="p-1 rounded-full bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-700 text-red-600 dark:text-red-300 transition-colors"
+                      title="Eliminar área"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        // Vista de tarjetas (actual)
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+          {sortedAreas.map(area => (
+            <div key={area.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow border border-indigo-100 dark:border-indigo-700 min-h-[70px] flex flex-col justify-center transition-colors relative group">
+              <h3 className="font-bold text-base text-indigo-800 dark:text-indigo-200 mb-1 break-words">{area.name}</h3>
+              <button
+                title="Eliminar área"
+                onClick={() => { setAreaToDelete(area); setIsDeleteAreaModalOpen(true); }}
+                className="absolute top-2 right-2 p-1 rounded-full bg-red-100 dark:bg-red-900 hover:bg-red-200 dark:hover:bg-red-700 text-red-600 dark:text-red-300 transition-opacity opacity-80 group-hover:opacity-100"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -1352,6 +1599,97 @@ const StudentsList = ({ students, areas }) => {
         </div>
       )}
     </div>
+  );
+};
+
+// DangerZone component
+const DangerZone = ({ onDangerClean, loading, onExportExcel }) => {
+  const [confirm, setConfirm] = useState('');
+  const [notification, setNotification] = useState(null);
+
+  useEffect(() => {
+    let timer;
+    if (notification) {
+      timer = setTimeout(() => {
+        setNotification(null);
+      }, 2000);
+    }
+    return () => clearTimeout(timer);
+  }, [notification]);
+
+  // Danger zone actions con notificación local
+  const handleDangerCleanLocal = async (action) => {
+    try {
+      if (action === 'truncate') {
+        setNotification({ type: 'success', message: '¡Tablas limpiadas exitosamente!' });
+        await new Promise(r => setTimeout(r, 400));
+        await Promise.all([
+          supabase.from('evidences').delete().neq('id', 0),
+          supabase.from('student_availability').delete().neq('id', 0),
+          supabase.from('tasks').delete().neq('id', 0),
+          supabase.from('area_change_requests').delete().neq('id', 0),
+        ]);
+      } else if (action === 'reset_hours') {
+        setNotification({ type: 'success', message: '¡Horas de los estudiantes reiniciadas a 0!' });
+        await new Promise(r => setTimeout(r, 400));
+        await supabase.from('users').update({ current_hours: 0 }).eq('role', 'student');
+      }
+      setConfirm('');
+      // No refrescamos datos aquí, lo hace el dashboard global
+    } catch (error) {
+      setNotification({ type: 'error', message: 'Error: ' + error.message });
+    }
+  };
+
+  return (
+    <>
+      {notification && (
+        <Notification
+          type={notification.type}
+          message={notification.message}
+          onClose={() => setNotification(null)}
+        />
+      )}
+      <div className="max-w-xl w-full mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-4 sm:p-6 border-2 border-red-400 mt-8 sm:mt-12 flex flex-col gap-4 sm:gap-6 transition-colors duration-200">
+        <div className="flex items-center mb-4">
+          <AlertTriangle className="w-8 h-8 text-red-600 mr-3" />
+          <h2 className="text-2xl font-bold text-red-700 dark:text-red-300">Zona de peligro</h2>
+        </div>
+        <p className="mb-2 sm:mb-4 text-red-600 dark:text-red-300 font-semibold">¡Cuidado! Estas acciones son irreversibles y afectarán a toda la base de datos.</p>
+        <div className="mb-4 sm:mb-6">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Escribe <span className="font-bold">BORRAR</span> para habilitar los botones:</label>
+          <input
+            type="text"
+            value={confirm}
+            onChange={e => setConfirm(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 transition-colors duration-200"
+          />
+        </div>
+        <div className="flex flex-col gap-3 sm:gap-4 w-full">
+          <button
+            disabled={loading || confirm !== 'BORRAR'}
+            onClick={() => handleDangerCleanLocal('truncate')}
+            className={`w-full px-4 py-2 rounded-lg font-bold text-white bg-red-600 hover:bg-red-700 transition-colors ${loading || confirm !== 'BORRAR' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            Vaciar tablas críticas
+          </button>
+          <button
+            disabled={loading || confirm !== 'BORRAR'}
+            onClick={() => handleDangerCleanLocal('reset_hours')}
+            className={`w-full px-4 py-2 rounded-lg font-bold text-white bg-orange-500 hover:bg-orange-600 transition-colors ${loading || confirm !== 'BORRAR' ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            Reiniciar horas de estudiantes a 0
+          </button>
+          <button
+            disabled={loading}
+            onClick={onExportExcel}
+            className={`w-full px-4 py-2 rounded-lg font-bold text-white bg-green-600 hover:bg-green-700 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          >
+            Exportar Excel de toda la base de datos
+          </button>
+        </div>
+      </div>
+    </>
   );
 };
 
