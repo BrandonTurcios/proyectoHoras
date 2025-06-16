@@ -88,11 +88,9 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
   }, [notification]);
 
   const isTaskOverdue = (dueDate) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const taskDueDate = new Date(dueDate);
-    taskDueDate.setHours(0, 0, 0, 0);
-    return today > taskDueDate;
+    const today = dayjs().startOf('day');
+    const taskDueDate = dayjs(dueDate).startOf('day');
+    return today.isAfter(taskDueDate);
   };
 
   const filteredTasks = tasks.filter(task => {
@@ -528,7 +526,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                           task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.due_date?.slice(0, 10)}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{dayjs(task.due_date).format('YYYY-MM-DD')}</td>
                     <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.required_hours}</td>
                     <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.workspace?.name || 'Sin espacio'}</td>
                     <td className="px-3 py-2">
@@ -599,7 +597,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                 <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                    <span className="break-words">Entrega: {task.due_date?.slice(0, 10)}</span>
+                    <span className="break-words">Entrega: {dayjs(task.due_date).format('YYYY-MM-DD')}</span>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />

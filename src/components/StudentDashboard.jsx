@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
 import {
   Clock,
   Calendar,
@@ -22,6 +25,9 @@ import TaskEvidence from './TaskEvidence';
 import StudentSchedule from './StudentSchedule';
 import AreaChangeRequestModal from './AreaChangeRequestModal';
 import ThemeToggle from './ThemeToggle';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 const SIDEBAR_ITEMS = [
   { key: 'tasks', label: 'Tareas', icon: <ListChecks className="w-5 h-5 mr-3" /> },
@@ -45,11 +51,9 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('tasks');
   
   const isTaskOverdue = (dueDate) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const taskDueDate = new Date(dueDate);
-    taskDueDate.setHours(0, 0, 0, 0);
-    return today > taskDueDate;
+    const today = dayjs().utc().startOf('day');
+    const taskDueDate = dayjs(dueDate).utc().startOf('day');
+    return today.isAfter(taskDueDate);
   };
 
   useEffect(() => {
@@ -236,7 +240,7 @@ const StudentDashboard = () => {
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="w-5 h-5 text-indigo-400 dark:text-indigo-300" />
-                          Entregar antes del {new Date(task.due_date).toLocaleDateString()}
+                          <span className="break-words">Entrega: {dayjs(task.due_date).utc().format('YYYY-MM-DD')}</span>
                         </div>
                       </div>
                     </div>
