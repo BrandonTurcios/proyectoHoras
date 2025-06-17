@@ -20,7 +20,9 @@ import {
   Upload,
   Download,
   Save,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import dayjs from 'dayjs';
@@ -58,8 +60,7 @@ const Notification = ({ type, message, onClose }) => {
   );
 };
 
-const TasksManager = ({ students, onTaskUpdate, areaId }) => {
-  const [tasks, setTasks] = useState([]);
+const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -71,11 +72,8 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
   const [previewData, setPreviewData] = useState([]);
   const [previewErrors, setPreviewErrors] = useState([]);
   const [notification, setNotification] = useState(null);
-
-  useEffect(() => {
-    if (userData?.id) fetchTasks();
-    // eslint-disable-next-line
-  }, [areaId, userData?.id]);
+  const [showEditTaskModal, setShowEditTaskModal] = useState(null); // Para editar
+  const [deleteTaskId, setDeleteTaskId] = useState(null); // Para modal de borrado
 
   useEffect(() => {
     let timer;
@@ -93,7 +91,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
     return today.isAfter(taskDueDate);
   };
 
-  const filteredTasks = tasks.filter(task => {
+  const filteredTasks = (tasks || []).filter(task => {
     if (filter !== 'all' && task.status !== filter) return false;
     if (selectedStudent !== 'all' && task.student_id !== selectedStudent) return false;
     return true;
@@ -168,6 +166,9 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
       }
     }
 
+    // Add success notification here
+    setNotification({ type: 'success', message: 'Tarea aprobada exitosamente' });
+
     setShowEvidenceModal(null);
     onTaskUpdate();
   };
@@ -178,28 +179,9 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
       .update({ status: 'pending' })
       .eq('id', taskId);
 
+    setNotification({ type: 'error', message: 'Evidencia rechazada. Tarea pendiente de nuevo.' });
     setShowEvidenceModal(null);
     onTaskUpdate();
-  };
-
-  const fetchTasks = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          admin:users!tasks_admin_id_fkey(full_name),
-          student:users!tasks_student_id_fkey(full_name),
-          workspace:workspaces!tasks_workspace_id_fkey(id, name),
-          evidences(*)
-        `)
-        .eq('admin_id', userData.id);
-
-      if (error) throw error;
-      if (data) setTasks(data);
-    } catch (error) {
-      console.error("Error fetching tasks:", error);
-    }
   };
 
   const validatePreviewData = (data) => {
@@ -221,6 +203,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
         errors.push(`Fila ${index + 1}: El email del estudiante no es válido`);
       }
     });
+    setNotification({ type: 'success', message: 'Tarea actualizada exitosamente' });
+    setShowEditTaskModal(null);
+    onTaskUpdate();
+    document.body.style.overflow = 'auto';
     return errors;
   };
 
@@ -411,6 +397,50 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
     document.body.style.overflow = 'auto';
   };
 
+  // Editar tarea
+  const handleEditTask = (task) => {
+    setShowEditTaskModal(task);
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Guardar edición
+  const handleUpdateTask = async (taskData) => {
+    const { student_ids, ...taskBaseData } = taskData;
+    // Solo permitimos editar una tarea a la vez (no masivo)
+    const { error } = await supabase
+      .from('tasks')
+      .update({
+        ...taskBaseData,
+        student_id: student_ids && student_ids.length === 1 ? student_ids[0] : null,
+      })
+      .eq('id', showEditTaskModal.id);
+    if (error) {
+      setNotification({ type: 'error', message: 'Error al actualizar la tarea: ' + error.message });
+      return;
+    }
+    setNotification({ type: 'success', message: 'Tarea actualizada exitosamente' });
+    setShowEditTaskModal(null);
+    onTaskUpdate();
+    document.body.style.overflow = 'auto';
+  };
+
+  // Borrar tarea
+  const handleDeleteTask = async () => {
+    if (!deleteTaskId) return;
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', deleteTaskId);
+    if (error) {
+      setNotification({ type: 'error', message: 'Error al borrar la tarea: ' + error.message });
+    } else {
+      setNotification({ type: 'error', message: 'Tarea eliminada exitosamente' });
+    }
+    setDeleteTaskId(null);
+    onTaskUpdate();
+    document.body.style.overflow = 'auto';
+  };
+
   return (
     <>
       {notification && (
@@ -418,6 +448,42 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
           type={notification.type}
           message={notification.message}
           onClose={() => setNotification(null)}
+        />
+      )}
+      {/* Modal de confirmación de borrado */}
+      {deleteTaskId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full shadow-xl">
+            <div className="flex items-center mb-4">
+              <Trash2 className="w-8 h-8 text-red-500 mr-3" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Eliminar tarea</h3>
+            </div>
+            <p className="text-gray-700 dark:text-gray-300 mb-6">¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer.</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => { setDeleteTaskId(null); document.body.style.overflow = 'auto'; }}
+                className="px-4 py-2 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteTask}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de edición */}
+      {showEditTaskModal && (
+        <TaskForm
+          students={students}
+          onSubmit={handleUpdateTask}
+          onClose={() => { setShowEditTaskModal(null); document.body.style.overflow = 'auto'; }}
+          areaId={areaId}
+          initialData={showEditTaskModal}
         />
       )}
       <div className="space-y-4 sm:space-y-6">
@@ -526,7 +592,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                           task.status === 'submitted' ? 'Enviada' : 'Pendiente'}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{dayjs(task.due_date).format('YYYY-MM-DD')}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{dayjs(task.due_date).utc().format('YYYY-MM-DD')}</td>
                     <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{task.required_hours}</td>
                     <td className="px-3 py-2 text-indigo-700 dark:text-indigo-300">{task.workspace?.name || 'Sin espacio'}</td>
                     <td className="px-3 py-2">
@@ -534,7 +600,11 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                         <button
                           onClick={() => {
                             document.body.style.overflow = 'hidden';
-                            setShowEvidenceModal(task);
+                            setShowEvidenceModal({
+                              ...task,
+                              _horasOption: task.evidences?.[0]?.hours_spent !== undefined ? 'dedicadas' : 'requeridas',
+                              _adminHours: task.evidences?.[0]?.hours_spent !== undefined ? task.evidences?.[0]?.hours_spent : task.required_hours
+                            });
                           }}
                           className={`px-3 py-1 rounded-lg text-white text-xs font-semibold shadow transition-all ${
                             task.status === 'approved'
@@ -544,6 +614,24 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                         >
                           Ver Evidencia
                         </button>
+                      )}
+                      {task.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditTask(task)}
+                            className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-200"
+                            title="Editar tarea"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => { setDeleteTaskId(task.id); document.body.style.overflow = 'hidden'; }}
+                            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200"
+                            title="Eliminar tarea"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -597,7 +685,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                 <div className="space-y-2 text-xs sm:text-sm text-indigo-700 dark:text-indigo-400 mt-auto">
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
-                    <span className="break-words">Entrega: {dayjs(task.due_date).format('YYYY-MM-DD')}</span>
+                    <span className="break-words">Entrega: {dayjs(task.due_date).utc().format('YYYY-MM-DD')}</span>
                   </div>
                   <div className="flex items-center">
                     <Clock className="w-4 h-4 mr-2 flex-shrink-0 text-indigo-400 dark:text-indigo-500" />
@@ -623,7 +711,11 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                   <button
                     onClick={() => {
                       document.body.style.overflow = 'hidden';
-                      setShowEvidenceModal(task);
+                      setShowEvidenceModal({
+                        ...task,
+                        _horasOption: task.evidences?.[0]?.hours_spent !== undefined ? 'dedicadas' : 'requeridas',
+                        _adminHours: task.evidences?.[0]?.hours_spent !== undefined ? task.evidences?.[0]?.hours_spent : task.required_hours
+                      });
                     }}
                     className={`mt-4 w-full px-4 py-2 rounded-xl text-white text-base font-semibold shadow-lg transition-all duration-150 ${
                       task.status === 'approved' 
@@ -633,6 +725,24 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                   >
                     Ver Evidencia
                   </button>
+                )}
+                {task.status === 'pending' && (
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={() => handleEditTask(task)}
+                      className="flex-1 flex items-center justify-center px-3 py-2 rounded-lg bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800 font-semibold"
+                      title="Editar tarea"
+                    >
+                      <Pencil className="w-4 h-4 mr-1" /> Editar
+                    </button>
+                    <button
+                      onClick={() => { setDeleteTaskId(task.id); document.body.style.overflow = 'hidden'; }}
+                      className="flex-1 flex items-center justify-center px-3 py-2 rounded-lg bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800 font-semibold"
+                      title="Eliminar tarea"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" /> Eliminar
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -730,7 +840,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                       onClick={() => setShowEvidenceModal({
                         ...showEvidenceModal,
                         _horasOption: 'otro',
-                        _adminHours: showEvidenceModal._adminHours || showEvidenceModal.required_hours
+                        _adminHours: showEvidenceModal._adminHours ?? showEvidenceModal.required_hours
                       })}
                     >
                       <span className="mr-2 w-3 h-3 rounded-full border-2 flex items-center justify-center"
@@ -787,7 +897,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
                           onClick={() => handleApproveEvidence(
                             showEvidenceModal.id,
                             showEvidenceModal.evidences?.[0]?.id,
-                            showEvidenceModal._adminHours !== undefined ? showEvidenceModal._adminHours : (showEvidenceModal.evidences?.[0]?.hours_spent || showEvidenceModal.required_hours)
+                            showEvidenceModal._adminHours
                           )}
                           className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
                         >
@@ -946,8 +1056,16 @@ const TasksManager = ({ students, onTaskUpdate, areaId }) => {
 };
 
 // Componente del formulario de tareas
-const TaskForm = ({ students, onSubmit, onClose, areaId }) => {
-  const [formData, setFormData] = useState({
+const TaskForm = ({ students, onSubmit, onClose, areaId, initialData }) => {
+  const [formData, setFormData] = useState(() => initialData ? {
+    title: initialData.title || '',
+    description: initialData.description || '',
+    required_hours: initialData.required_hours || 1,
+    due_date: initialData.due_date ? initialData.due_date.slice(0, 10) : '',
+    student_ids: initialData.student_id ? [initialData.student_id] : [],
+    workspace_id: initialData.workspace_id || '',
+    status: initialData.status || 'pending',
+  } : {
     title: '',
     description: '',
     required_hours: 1,
@@ -998,9 +1116,9 @@ const TaskForm = ({ students, onSubmit, onClose, areaId }) => {
   };
 
   return (
-    <div className="fixed -inset-6 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed -inset-6 bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Nueva Tarea</h2>
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">{initialData ? 'Editar Tarea' : 'Nueva Tarea'}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1106,7 +1224,7 @@ const TaskForm = ({ students, onSubmit, onClose, areaId }) => {
               type="submit"
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 w-full sm:w-auto text-sm sm:text-base"
             >
-              Crear Tarea
+              {initialData ? 'Guardar Cambios' : 'Crear Tarea'}
             </button>
           </div>
         </form>
