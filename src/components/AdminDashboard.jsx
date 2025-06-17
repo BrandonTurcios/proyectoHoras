@@ -17,6 +17,7 @@ import Statistics from './Statistics';
 import StudentSchedule from './StudentSchedule';
 import ThemeToggle from './ThemeToggle';
 import WorkspacesManager from './WorkspacesManager';
+import dayjs from 'dayjs';
 
 // Paleta de colores para estudiantes
 const studentColors = [
@@ -48,6 +49,15 @@ function getStudentColor(name) {
 const CombinedSchedule = ({ students }) => {
   const [combinedSchedule, setCombinedSchedule] = useState({});
   const [loading, setLoading] = useState(true);
+
+  // Function to convert "HH:mm" or "HH:mm:ss" string to total minutes from midnight
+  const timeToMinutes = (timeStr) => {
+    console.log(`timeToMinutes input: ${timeStr}`); // Debug log
+    const parts = timeStr.split(':').map(Number);
+    const minutes = parts[0] * 60 + parts[1];
+    console.log(`timeToMinutes output for ${timeStr}: ${minutes}`); // Debug log
+    return minutes;
+  };
 
   // Solo días de lunes a sábado
   const daysOfWeek = [
@@ -126,8 +136,23 @@ const CombinedSchedule = ({ students }) => {
                   const slotsArr = Array.isArray(combinedSchedule[day]) ? combinedSchedule[day] : [];
                   // Estudiantes presentes durante TODO el bloque (no solo solapados)
                   const slots = slotsArr.filter(slot => {
-                    // El bloque debe estar completamente dentro del horario del estudiante
-                    return slot.start_time <= start && slot.end_time >= end;
+                    // Convert all times to minutes for robust comparison
+                    const slotMinutesStart = timeToMinutes(slot.start_time);
+                    const slotMinutesEnd = timeToMinutes(slot.end_time);
+                    const blockMinutesStart = timeToMinutes(start);
+                    const blockMinutesEnd = timeToMinutes(end);
+
+                    // Debug logs for overlap logic
+                    console.log(`
+                      Slot Time: ${slot.start_time}-${slot.end_time} (${slotMinutesStart}-${slotMinutesEnd} min)
+                      Block Time: ${start}-${end} (${blockMinutesStart}-${blockMinutesEnd} min)
+                      Condition: ${slotMinutesStart} < ${blockMinutesEnd} && ${slotMinutesEnd} > ${blockMinutesStart}
+                      Overlap Result: ${slotMinutesStart < blockMinutesEnd && slotMinutesEnd > blockMinutesStart}
+                    `);
+
+                    // Check for overlap: [slot.start_time, slot.end_time] overlaps with [block.start, block.end]
+                    // An overlap exists if slot_start < block_end AND slot_end > block_start
+                    return slotMinutesStart < blockMinutesEnd && slotMinutesEnd > blockMinutesStart;
                   });
                   return (
                     <td key={day} className={`px-0 py-3 align-top border-b-2 border-r-2 border-indigo-100 last:border-r-0 text-xs leading-tight whitespace-nowrap ${rowIdx === hourBlocks.length - 1 ? '' : ''}`}>
