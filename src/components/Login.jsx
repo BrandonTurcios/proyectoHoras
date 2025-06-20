@@ -607,6 +607,10 @@ const Login = () => {
           </div>
         )}
       </div>
+      {/* Footer de autor */}
+      <div className="fixed bottom-2 left-0 w-full text-center pointer-events-none select-none">
+        <span className="text-xs text-gray-400 dark:text-gray-600 opacity-60 dark:opacity-40">creada por Brandon Turcios</span>
+      </div>
     </div>
   );
 };
