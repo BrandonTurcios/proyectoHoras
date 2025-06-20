@@ -25,6 +25,7 @@ import TaskEvidence from './TaskEvidence';
 import StudentSchedule from './StudentSchedule';
 import AreaChangeRequestModal from './AreaChangeRequestModal';
 import ThemeToggle from './ThemeToggle';
+import SurveyModal from './SurveyModal';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -49,6 +50,7 @@ const StudentDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('tasks');
+  const [isSurveyOpen, setIsSurveyOpen] = useState(false);
   
   const isTaskOverdue = (dueDate) => {
     const today = dayjs().utc().startOf('day');
@@ -529,6 +531,19 @@ const StudentDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Botón flotante de encuesta */}
+      <button
+        onClick={() => setIsSurveyOpen(true)}
+        className="fixed bottom-6 right-6 z-50 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full shadow-lg px-6 py-3 flex items-center gap-2 text-base font-semibold transition-all duration-200"
+        style={{ boxShadow: '0 4px 24px rgba(80, 80, 200, 0.15)' }}
+      >
+        <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" />
+        </svg>
+        Encuesta
+      </button>
+      <SurveyModal isOpen={isSurveyOpen} onClose={() => setIsSurveyOpen(false)} />
     </div>
     
   );

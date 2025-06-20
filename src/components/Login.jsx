@@ -403,7 +403,10 @@ const Login = () => {
       </div>
       <div className="w-full max-w-md z-10">
         {/* Título principal */}
-        <h1 className="text-5xl font-extrabold text-center mb-8 text-indigo-800 dark:text-indigo-200 drop-shadow-lg">titulo largo test123456789</h1>
+        <h1 className="text-5xl font-extrabold text-center mb-8 text-indigo-800 dark:text-indigo-200 drop-shadow-lg">
+          <span className="hidden sm:inline">Sistema de Administración de Becados</span>
+          <span className="inline sm:hidden">SADEBEC</span>
+        </h1>
         {notification && (
           <Notification
             type={notification.type}

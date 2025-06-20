@@ -59,6 +59,7 @@ const BossDashboard = () => {
   const [areas, setAreas] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [students, setStudents] = useState([]);
+  const [surveys, setSurveys] = useState([]);
   
   const [loading, setLoading] = useState(true);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -114,6 +115,12 @@ const BossDashboard = () => {
     }
     return () => clearTimeout(timer);
   }, [notification]);
+
+  useEffect(() => {
+    if (activeTab === 'surveys') {
+      fetchSurveys();
+    }
+  }, [activeTab]);
 
   const fetchAdmins = async () => {
     try {
@@ -187,6 +194,14 @@ const BossDashboard = () => {
     } catch (error) {
       console.error("Error fetching tasks:", error);
     }
+  };
+
+  const fetchSurveys = async () => {
+    const { data, error } = await supabase
+      .from('encuestas')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error) setSurveys(data);
   };
 
   const handleAssignArea = async (adminId, areaId) => {
@@ -438,8 +453,11 @@ const BossDashboard = () => {
         return <TasksList tasks={tasks} admins={admins} students={students} />;
       case 'students':
         return <StudentsList students={students} areas={areas} />;
+        case 'surveys':
+          return <SurveysList surveys={surveys} />;
       case 'danger':
         return <DangerZone onDangerClean={handleDangerClean} loading={dangerLoading} onExportExcel={handleExportExcel} />;
+     
       default:
         return null;
     }
@@ -573,6 +591,18 @@ const BossDashboard = () => {
             >
               <Mail className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
               <span className="text-lg sm:text-base">Solicitudes</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('surveys');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 ${
+                activeTab === 'surveys' ? 'bg-indigo-50 text-indigo-600' : ''
+              }`}
+            >
+              <BarChart2 className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Encuestas</span>
             </button>
             <button
               onClick={() => {
@@ -1690,6 +1720,139 @@ const DangerZone = ({ onDangerClean, loading, onExportExcel }) => {
         </div>
       </div>
     </>
+  );
+};
+
+// Componente para mostrar estrellas
+const StarBar = ({ value, max = 5, size = 24 }) => (
+  <div className="flex items-center gap-1">
+    {[...Array(max)].map((_, i) => (
+      <svg
+        key={i}
+        width={size}
+        height={size}
+        fill={i < value ? '#fbbf24' : '#e5e7eb'}
+        viewBox="0 0 24 24"
+      >
+        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+      </svg>
+    ))}
+    <span className="ml-2 font-bold text-lg">{value.toFixed(2)}</span>
+  </div>
+);
+
+const SurveysList = ({ surveys }) => {
+  if (!surveys || surveys.length === 0) {
+    return <div className="text-gray-500 py-8 text-center">No hay encuestas registradas.</div>;
+  }
+
+  // Calcular promedios
+  const avg = (key) => surveys.reduce((a, b) => a + (b[key] || 0), 0) / surveys.length;
+  const avgUsage = avg('usage');
+  const avgEase = avg('ease');
+  const avgGraphics = avg('graphics');
+
+  // Distribución de respuestas
+  const getDist = (key) => {
+    const dist = [0, 0, 0, 0, 0];
+    surveys.forEach(s => {
+      if (s[key] >= 1 && s[key] <= 5) dist[s[key] - 1]++;
+    });
+    return dist;
+  };
+  const distUsage = getDist('usage');
+  const distEase = getDist('ease');
+  const distGraphics = getDist('graphics');
+
+  return (
+    <div className="space-y-8">
+      {/* Promedios */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
+          <h3 className="font-bold text-indigo-700 mb-2">Uso de aplicación</h3>
+          <StarBar value={avgUsage} />
+        </div>
+        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
+          <h3 className="font-bold text-indigo-700 mb-2">Facilidad</h3>
+          <StarBar value={avgEase} />
+        </div>
+        <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center">
+          <h3 className="font-bold text-indigo-700 mb-2">Calidad gráfica</h3>
+          <StarBar value={avgGraphics} />
+        </div>
+      </div>
+
+      {/* Distribución */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[{label: 'Uso', dist: distUsage}, {label: 'Facilidad', dist: distEase}, {label: 'Gráfica', dist: distGraphics}].map(({label, dist}) => (
+          <div key={label} className="bg-white rounded-xl shadow p-6">
+            <h4 className="font-semibold text-indigo-600 mb-2">{label} - Distribución</h4>
+            <div className="flex items-end gap-2 h-24">
+              {dist.map((count, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <div
+                    className="w-6 bg-indigo-400 rounded-t"
+                    style={{ height: `${count * 12}px` }}
+                    title={`${count} respuestas`}
+                  />
+                  <span className="text-xs mt-1">{i + 1}★</span>
+                  <span className="text-xs text-gray-500">{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Comentarios */}
+      <div>
+        <h3 className="font-bold text-indigo-700 mb-2">Comentarios</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {surveys.filter(s => s.comment && s.comment.trim()).map(s => (
+            <div key={s.id} className="bg-indigo-50 dark:bg-gray-800 rounded-lg p-4 shadow text-gray-800 dark:text-gray-100">
+              <div className="text-sm">{s.comment}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">{new Date(s.created_at).toLocaleString()}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Tabla detallada */}
+      <div>
+        <h3 className="font-bold text-indigo-700 mb-2">Todas las respuestas</h3>
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white rounded-lg shadow">
+            <thead>
+              <tr>
+                <th className="px-4 py-2">ID</th>
+                <th className="px-4 py-2">Uso</th>
+                <th className="px-4 py-2">Facilidad</th>
+                <th className="px-4 py-2">Gráfica</th>
+                <th className="px-4 py-2">Comentario</th>
+                <th className="px-4 py-2">Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {surveys.map(s => (
+                <tr key={s.id}>
+                  <td className="border px-4 py-2">{s.id}</td>
+                  <td className="border px-4 py-2">{s.usage}</td>
+                  <td className="border px-4 py-2">{s.ease}</td>
+                  <td className="border px-4 py-2">{s.graphics}</td>
+                  <td className="border px-4 py-2">{s.comment}</td>
+                  <td className="border px-4 py-2">{new Date(s.created_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Resumen final */}
+      <div className="mt-8 rounded-xl p-6 text-center font-semibold text-lg bg-indigo-100 dark:bg-gray-800 text-indigo-900 dark:text-gray-100">
+        <span>Se han recibido <b>{surveys.length}</b> encuestas.</span>
+      </div>
+    </div>
   );
 };
 
