@@ -215,7 +215,7 @@ const StudentDashboard = () => {
                             <span className="truncate min-w-0">{task.title}</span>
                           </h3>
                           {/* Tooltip for long titles */}
-                          <div className="hidden group-hover:block absolute left-0 top-full z-50 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                          <div className="hidden group-hover:block absolute left-0 top-full z-50 mt-1 w-max max-w-s bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
                             {task.title}
                           </div>
                         </div>
@@ -224,7 +224,7 @@ const StudentDashboard = () => {
                             {task.description}
                           </p>
                           {/* Tooltip for long descriptions */}
-                          <div className="hidden group-hover:block absolute left-0 top-full z-50 mt-1 w-max max-w-xs bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
+                          <div className="hidden group-hover:block absolute left-0 top-full z-50 mt-1 w-max max-w-xl bg-indigo-900 dark:bg-indigo-800 text-white text-sm rounded-lg px-3 py-2 shadow-lg whitespace-pre-line break-words">
                             {task.description}
                           </div>
                         </div>

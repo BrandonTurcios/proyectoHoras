@@ -137,7 +137,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
       setNotification({ type: 'success', message: 'Tareas creadas exitosamente' });
     }
 
-    onTaskUpdate();
+    await onTaskUpdate();
     setShowNewTaskModal(false);
   };
   
@@ -170,7 +170,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
     setNotification({ type: 'success', message: 'Tarea aprobada exitosamente' });
 
     setShowEvidenceModal(null);
-    onTaskUpdate();
+    await onTaskUpdate();
   };
 
   const handleRejectEvidence = async (taskId) => {
@@ -181,10 +181,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
 
     setNotification({ type: 'error', message: 'Evidencia rechazada. Tarea pendiente de nuevo.' });
     setShowEvidenceModal(null);
-    onTaskUpdate();
+    await onTaskUpdate();
   };
 
-  const validatePreviewData = (data) => {
+  const validatePreviewData = async(data) => {
     const errors = [];
     data.forEach((row, index) => {
       if (!row.title?.trim()) {
@@ -205,18 +205,18 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
     });
     setNotification({ type: 'success', message: 'Tarea actualizada exitosamente' });
     setShowEditTaskModal(null);
-    onTaskUpdate();
+    await onTaskUpdate();
     document.body.style.overflow = 'auto';
     return errors;
   };
 
-  const handleExcelImport = async (event) => {
+  const handleExcelImport = async(event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     try {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async(e) => {
         try {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
@@ -224,7 +224,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
           const jsonData = XLSX.utils.sheet_to_json(worksheet);
           
           // Convertir los datos al formato correcto
-          const formattedData = jsonData.map(row => {
+          const formattedData = jsonData.map((row) => {
             // Asegurar que la fecha esté en formato YYYY-MM-DD
             let dueDate = row.due_date;
             if (dueDate) {
@@ -251,7 +251,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
             };
           });
 
-          const errors = validatePreviewData(formattedData);
+          const errors = await validatePreviewData(formattedData);
           setPreviewErrors(errors);
           setPreviewData(formattedData);
           document.body.style.overflow = 'hidden';
@@ -274,13 +274,13 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
     }
   };
 
-  const handlePreviewEdit = (index, field, value) => {
+  const handlePreviewEdit = async(index, field, value) => {
     const newData = [...previewData];
     newData[index] = { ...newData[index], [field]: value };
     setPreviewData(newData);
     
     // Revalidar después de cada edición
-    const errors = validatePreviewData(newData);
+    const errors = await validatePreviewData(newData);
     setPreviewErrors(errors);
   };
 
@@ -352,7 +352,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
       }
 
       setImportPreview(false);
-      onTaskUpdate();
+      await onTaskUpdate();
       setTimeout(() => {
         alert('Tareas importadas exitosamente');
       }, 100);
@@ -420,7 +420,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
     }
     setNotification({ type: 'success', message: 'Tarea actualizada exitosamente' });
     setShowEditTaskModal(null);
-    onTaskUpdate();
+    await onTaskUpdate();
     document.body.style.overflow = 'auto';
   };
 
@@ -437,7 +437,7 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
       setNotification({ type: 'error', message: 'Tarea eliminada exitosamente' });
     }
     setDeleteTaskId(null);
-    onTaskUpdate();
+    await onTaskUpdate();
     document.body.style.overflow = 'auto';
   };
 
