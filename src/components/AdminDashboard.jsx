@@ -607,14 +607,13 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas, ha
 
   return (
     <div>
-      <div className="flex w-full items-center gap-3 px-5 py-2 mb-5">
-        <label
-          htmlFor="limit"
-          className="font-semibold text-indigo-800 whitespace-nowrap"
-        >
-          Límite:
-        </label>  
-                    
+      <label
+        htmlFor="limit"
+        className="font-semibold text-indigo-800 whitespace-nowrap"
+      >
+        Límite:
+      </label>  
+      <div className="flex w-full items-center gap-3 py-2 mb-5">
         <select
           id="limit"
           className="
