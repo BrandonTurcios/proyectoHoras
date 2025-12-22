@@ -60,7 +60,7 @@ const Notification = ({ type, message, onClose }) => {
   );
 };
 
-const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
+const TasksManager = ({ students, onTaskUpdate, areaId, tasks, handleChangeLimit }) => {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -556,7 +556,39 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks }) => {
             </button>
           </div>
         </div>
-
+        <div className="flex w-full items-center gap-3 px-5 py-2">
+          <label
+            htmlFor="limit"
+            className="font-semibold text-indigo-800 whitespace-nowrap"
+          >
+            Límite:
+          </label>  
+                      
+          <select
+            id="limit"
+            className="
+              w-full
+              rounded-md
+              bg-gradient-to-br from-indigo-50 to-white
+              border border-indigo-200
+              px-3 py-1.5
+              text-sm
+              shadow-sm
+              transition-all
+              hover:shadow-md
+              focus:outline-none
+              focus:ring-2
+              focus:ring-indigo-400
+            "
+            defaultValue={10}
+            onChange={(e) => handleChangeLimit(Number(e.target.value))}
+          >
+            <option className="bg-indigo-50 text-indigo-900" value={25}>25</option>
+            <option className="bg-indigo-50 text-indigo-900" value={50}>50</option>
+            <option className="bg-indigo-50 text-indigo-900" value={100}>100</option>
+            <option className="bg-indigo-50 text-indigo-900" value={500}>500</option>
+          </select>
+        </div>
         {/* Tasks Grid o Lista */}
         {filteredTasks.length === 0 ? (
           <div className="text-gray-500">No hay tareas para mostrar.</div>

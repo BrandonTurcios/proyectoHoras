@@ -18,6 +18,7 @@ import StudentSchedule from './StudentSchedule';
 import ThemeToggle from './ThemeToggle';
 import WorkspacesManager from './WorkspacesManager';
 import dayjs from 'dayjs';
+import { Select } from '@headlessui/react';
 
 // Paleta de colores para estudiantes
 const studentColors = [
@@ -197,6 +198,8 @@ const AdminDashboard = () => {
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [limit, setLimit] = useState(10);
+  const [limitTasks, setLimitTasks] = useState(25);
 
   const { userData, signOut } = useAuth();
 
@@ -223,13 +226,21 @@ const AdminDashboard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    fetchStudents();
+  }, [limit]);
+
+  useEffect(() => {
+    fetchTasks();
+  }, [limitTasks]);
+
   const fetchStudents = async () => {
     try {
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('role', 'student')
-        .eq('internship_area', userData.internship_area);
+        .eq('internship_area', userData.internship_area).limit(limit);
 
       if (error) throw error;
       if (data) setStudents(data);
@@ -248,7 +259,7 @@ const AdminDashboard = () => {
           student:users!tasks_student_id_fkey(full_name),
           evidences(*)
         `)
-        .eq('admin_id', userData.id);
+        .eq('admin_id', userData.id).limit(limitTasks).order('created_at', { ascending: false });
 
       if (error) throw error;
       if (data) setTasks(data);
@@ -283,13 +294,21 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleChangeLimit = async(newLimit) => {
+    setLimit(newLimit);
+  };
+
+  const handleChangeLimitTask = async(newLimit) => {
+    setLimitTasks(newLimit);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'students':
-        return <StudentsList students={students} areas={areas} />;
+        return <StudentsList students={students} areas={areas} handleChangeLimit={handleChangeLimit}/>;
        
       case 'tasks':
-        return <TasksManager tasks={tasks} students={students} onTaskUpdate={fetchTasks} areas={areas} areaId={userData?.internship_area} />;
+        return <TasksManager tasks={tasks} students={students} handleChangeLimit={handleChangeLimitTask} onTaskUpdate={fetchTasks} areas={areas} areaId={userData?.internship_area} />;
         
       case 'statistics':
         return <Statistics students={students} tasks={tasks} areas={areas} />;
@@ -331,6 +350,7 @@ const AdminDashboard = () => {
                 onSelectStudent={(id) => setSelectedStudentId(id)}
                 showScheduleOption={true}
                 areas={areas}
+                handleChangeLimit={handleChangeLimit}
               />
             ) : (
               <div>
@@ -565,7 +585,7 @@ const AdminDashboard = () => {
 };
 
 // Componente de lista de estudiantes
-const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) => {
+const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas, handleChangeLimit }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
 
@@ -586,47 +606,82 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas }) 
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {filteredStudents.map(student => {
-        const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
-        const isCompleted = student.current_hours >= student.hours_required;
-        const progress = (student.current_hours / student.hours_required) * 100;
-        const progressColor = isCompleted ? 'bg-green-500' : 'bg-indigo-400';
-        
-        return (
-          <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
-            <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
-            <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
-            <div className="mt-3 sm:mt-4">
-              <div className="flex justify-between mb-1">
-                <span className={`text-xs sm:text-sm font-medium ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
-                  {isCompleted ? 'COMPLETADO' : 'Progreso de horas'}
-                </span>
-                <span className={`text-xs sm:text-sm font-bold ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
-                  {Math.round(progress)}%
-                </span>
+    <div>
+      <div className="flex w-full items-center gap-3 px-5 py-2 mb-5">
+        <label
+          htmlFor="limit"
+          className="font-semibold text-indigo-800 whitespace-nowrap"
+        >
+          Límite:
+        </label>  
+                    
+        <select
+          id="limit"
+          className="
+            w-full
+            rounded-md
+            bg-gradient-to-br from-indigo-50 to-white
+            border border-indigo-200
+            px-3 py-1.5
+            text-sm
+            shadow-sm
+            transition-all
+            hover:shadow-md
+            focus:outline-none
+            focus:ring-2
+            focus:ring-indigo-400
+          "
+          defaultValue={10}
+          onChange={(e) => handleChangeLimit(Number(e.target.value))}
+        >
+          <option className="bg-indigo-50 text-indigo-900" value={10}>10</option>
+          <option className="bg-indigo-50 text-indigo-900" value={25}>25</option>
+          <option className="bg-indigo-50 text-indigo-900" value={50}>50</option>
+          <option className="bg-indigo-50 text-indigo-900" value={100}>100</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredStudents.map(student => {
+          const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
+          const isCompleted = student.current_hours >= student.hours_required;
+          const progress = (student.current_hours / student.hours_required) * 100;
+          const progressColor = isCompleted ? 'bg-green-500' : 'bg-indigo-400';
+
+          return (
+            <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
+              <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
+              <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
+              <div className="mt-3 sm:mt-4">
+                <div className="flex justify-between mb-1">
+                  <span className={`text-xs sm:text-sm font-medium ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                    {isCompleted ? 'COMPLETADO' : 'Progreso de horas'}
+                  </span>
+                  <span className={`text-xs sm:text-sm font-bold ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                    {Math.round(progress)}%
+                  </span>
+                </div>
+                <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                  <div
+                    style={{ width: `${Math.min(100, progress)}%` }}
+                    className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${progressColor}`}
+                  ></div>
+                </div>
+                <div className={`mt-1 sm:mt-2 text-xs sm:text-sm ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                  {student.current_hours} de {student.hours_required} horas completadas
+                </div>
               </div>
-              <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
-                <div
-                  style={{ width: `${Math.min(100, progress)}%` }}
-                  className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${progressColor}`}
-                ></div>
-              </div>
-              <div className={`mt-1 sm:mt-2 text-xs sm:text-sm ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
-                {student.current_hours} de {student.hours_required} horas completadas
-              </div>
+              {showScheduleOption && (
+                <button
+                  className="mt-3 sm:mt-4 w-full bg-indigo-600 text-white py-2 rounded-xl hover:bg-indigo-700 text-sm sm:text-base font-semibold shadow"
+                  onClick={() => onSelectStudent(student.id)}
+                >
+                  Ver horario
+                </button>
+              )}
             </div>
-            {showScheduleOption && (
-              <button
-                className="mt-3 sm:mt-4 w-full bg-indigo-600 text-white py-2 rounded-xl hover:bg-indigo-700 text-sm sm:text-base font-semibold shadow"
-                onClick={() => onSelectStudent(student.id)}
-              >
-                Ver horario
-              </button>
-            )}
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 };
