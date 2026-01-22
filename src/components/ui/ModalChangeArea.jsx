@@ -37,12 +37,12 @@ export default function ModalChangeArea({ userId, isOpen, onClose, onUpdate }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/50"
       onClick={onClose}
     >
       {/* MODAL */}
       <div
-        className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md"
+        className=" bg-white rounded-2xl shadow-xl p-6 w-full max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER */}
@@ -70,7 +70,7 @@ export default function ModalChangeArea({ userId, isOpen, onClose, onUpdate }) {
                   ${
                     selectedArea === area.id
                       ? "bg-indigo-50 border-indigo-400"
-                      : "hover:bg-blue-400"
+                      : "hover:bg-indigo-400"
                   }`}
               >
                 <input
@@ -89,7 +89,7 @@ export default function ModalChangeArea({ userId, isOpen, onClose, onUpdate }) {
         <div className="flex justify-end gap-2 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded border hover:bg-gray-100"
+            className="px-4 py-2 rounded border hover:bg-indigo-50"
           >
             Cancelar
           </button>

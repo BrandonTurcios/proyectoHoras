@@ -27,7 +27,7 @@ function Dropdown({items = []}) {
   },[]);
 
   return (
-    <div ref={dropdownRef} className="relative inline-block  h-auto ">
+    <div ref={dropdownRef} className="relative inline-block font-[Poppins] h-auto ">
       <button className="font-bold text-xl" onClick={toggleDropdown}>
         ...
        <i className={`${isOpen ? 'border border-white border' : ''}`} ></i>
@@ -36,7 +36,7 @@ function Dropdown({items = []}) {
         <div className="absolute z-50 mt-2 bg-gray-50 rounded-md border border-sm border-indigo-100 space-y-2 w-32">
           <div className="px-4 py-2 rounded-md hover:bg-indigo-50 cursor-pointer">
             {items.map((item) => (
-              <button href="#" className='text-xs text-indigo-700' onClick={() => item.action()}>
+              <button className='text-xs text-indigo-700' onClick={() => item.action()}>
                 {item.label}
               </button>
             ))}
