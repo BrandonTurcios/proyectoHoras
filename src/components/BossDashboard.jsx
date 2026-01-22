@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import Dropdown from './ui/DropdownStudent';
 import { supabase } from '../lib/supabase';
 import { 
   Users, 
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import * as XLSX from 'xlsx';
+import ModalChangeArea from './ui/ModalChangeArea';
 
 // Notification component (copiado de Login.jsx)
 const Notification = ({ type, message, onClose }) => {
@@ -80,18 +82,19 @@ const BossDashboard = () => {
 
   const { userData, signOut } = useAuth();
 
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchAdmins(),
+      fetchAreas(),
+      fetchRequests(),
+      fetchStudents(),
+      fetchAllTasks()
+    ]);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      await Promise.all([
-        fetchAdmins(),
-        fetchAreas(),
-        fetchRequests(),
-        fetchStudents(),
-        fetchAllTasks()
-      ]);
-      setLoading(false);
-    };
     fetchData();
   }, []);
 
@@ -452,7 +455,7 @@ const BossDashboard = () => {
       case 'tasks':
         return <TasksList tasks={tasks} admins={admins} students={students} />;
       case 'students':
-        return <StudentsList students={students} areas={areas} />;
+        return <StudentsList fetchData={() => fetchData()} students={students} areas={areas} />;
         case 'surveys':
           return <SurveysList surveys={surveys} />;
       case 'danger':
@@ -1483,10 +1486,11 @@ const TasksList = ({ tasks, admins, students }) => {
 };
 
 // Componente de lista de estudiantes
-const StudentsList = ({ students, areas }) => {
+const StudentsList = ({ fetchData,students, areas }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [compactView, setCompactView] = useState(false);
+  const [changeArea,setChangeArea] = useState(null);
 
   const filteredStudents = students
     .filter(student => 
@@ -1550,6 +1554,7 @@ const StudentsList = ({ students, areas }) => {
                 <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Área</th>
                 <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Progreso</th>
                 <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Horas</th>
+                <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Acciones</th>
                 <th className="px-3 py-2 text-left font-semibold text-indigo-700 dark:text-indigo-300">Estado</th>
               </tr>
             </thead>
@@ -1575,6 +1580,13 @@ const StudentsList = ({ students, areas }) => {
                     <td className="px-3 py-2 text-gray-700 dark:text-gray-300">
                       {student.current_hours} / {student.hours_required}
                     </td>
+                    <td className='px-3 py-2 items-center overflow-visible'>
+                      <Dropdown 
+                        items={[
+                          { label: 'Cambiar de Área',  action: () => {setChangeArea(student.id)} }
+                        ]}
+                      />
+                    </td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         isCompleted ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
@@ -1599,8 +1611,15 @@ const StudentsList = ({ students, areas }) => {
             
             return (
               <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
-                <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
-                <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
+                <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3> 
+                <div className='flex justify-between items-center'>
+                  <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
+                  <Dropdown items={
+                    [
+                      { label: 'Cambiar de Área',  action: () => {setChangeArea(student.id)} }
+                    ]
+                  }/>
+                </div>
                 <div className="mt-3 sm:mt-4">
                   <div className="flex justify-between mb-1">
                     <span className={`text-xs sm:text-sm font-medium ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
@@ -1628,6 +1647,7 @@ const StudentsList = ({ students, areas }) => {
           })}
         </div>
       )}
+      <ModalChangeArea onUpdate={() => {fetchData()}}userId={changeArea} isOpen={changeArea} onClose={() => setChangeArea(false)}/>  
     </div>
   );
 };
