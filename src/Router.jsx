@@ -41,7 +41,7 @@ const Router = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       {userData.role === 'boss' && <Route path="*" element={<BossDashboard />} />}
       {userData.role === 'admin' && <Route path="*" element={<AdminDashboard />} />}
-      {userData.role === 'student' && <Route path="*" element={<BossDashboard />} />}
+      {userData.role === 'student' && <Route path="*" element={<StudentDashboard />} />}
       {/* Fallback para roles no válidos */}
       {!(userData.role === 'boss' || userData.role === 'admin' || userData.role === 'student') && (
         <Route path="*" element={
