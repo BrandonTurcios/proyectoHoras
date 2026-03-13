@@ -260,7 +260,7 @@ const AdminDashboard = () => {
           evidences(*)
         `)
         .eq('admin_id', userData.id).limit(limitTasks).order('created_at', { ascending: false });
-
+        console.log(data);
       if (error) throw error;
       if (data) setTasks(data);
     } catch (error) {

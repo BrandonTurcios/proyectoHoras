@@ -197,7 +197,8 @@ const TaskEvidence = ({ task, onClose }) => {
         .from('tasks')
         .update({ 
           status: 'submitted',
-          evidence_pdf_url: result.pdfUrl
+          evidence_pdf_url: result.pdfUrl,
+          comments_evidence: ''
         })
         .eq('id', task.id);
 
@@ -248,6 +249,27 @@ const TaskEvidence = ({ task, onClose }) => {
               </div>
             </div>
           </div>
+
+          {task.comments_evidence && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+              
+              <div className="flex items-start gap-2 mb-3">
+                <span className="text-red-600 text-lg">⚠️</span>
+                <p className="text-sm font-semibold text-red-700">
+                  Esta tarea fue rechazada anteriormente por su jefe. 
+                  Revisa los comentarios para corregirla antes de volver a enviarla.
+                </p>
+              </div>
+                    
+              <textarea
+                value={task.comments_evidence}
+                readOnly
+                className="w-full border border-red-200 rounded-lg p-2 text-sm text-red-700 bg-red-100 focus:outline-none"
+                rows={3}
+              />
+              
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-800 text-red-600 dark:text-red-300 px-4 py-3 rounded-lg">

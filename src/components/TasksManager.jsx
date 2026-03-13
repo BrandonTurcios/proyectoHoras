@@ -1,6 +1,8 @@
 // src/components/TasksManager.jsx
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import ConfirmEvidenceModal from "../components/ConfirmEvidenceModal";
+
 
 import { supabase } from '../lib/supabase';
 import { 
@@ -72,9 +74,11 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks, handleChangeLimit
   const [previewData, setPreviewData] = useState([]);
   const [previewErrors, setPreviewErrors] = useState([]);
   const [notification, setNotification] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({open: false, type: null});
+  const [pendingAction, setPendingAction] = useState(() => {});
   const [showEditTaskModal, setShowEditTaskModal] = useState(null); // Para editar
   const [deleteTaskId, setDeleteTaskId] = useState(null); // Para modal de borrado
-
+  console.log(confirmModal);
   useEffect(() => {
     let timer;
     if (notification) {
@@ -142,10 +146,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks, handleChangeLimit
   };
   
 
-  const handleApproveEvidence = async (taskId, evidenceId, hoursSpent) => {
+  const handleApproveEvidence = async (taskId, evidenceId, hoursSpent, comments) => {
     const { data: task, error: taskError } = await supabase
       .from('tasks')
-      .update({ status: 'approved' })
+      .update({ status: 'approved', comments_evidence: comments })
       .eq('id', taskId)
       .select('student_id')
       .single();
@@ -173,10 +177,10 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks, handleChangeLimit
     await onTaskUpdate();
   };
 
-  const handleRejectEvidence = async (taskId) => {
+  const handleRejectEvidence = async (taskId, comment) => {
     await supabase
       .from('tasks')
-      .update({ status: 'pending' })
+      .update({ status: 'pending', comments_evidence: comment})
       .eq('id', taskId);
 
     setNotification({ type: 'error', message: 'Evidencia rechazada. Tarea pendiente de nuevo.' });
@@ -918,24 +922,40 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks, handleChangeLimit
                     )}
                     {showEvidenceModal.status !== 'approved' && (
                       <div className="flex-1 flex justify-end space-x-2">
+                      
                         <button
-                          onClick={() => handleRejectEvidence(showEvidenceModal.id)}
+                          onClick={() => {
+                            setShowEvidenceModal(false);
+                            setPendingAction(() => (confirm) =>
+                              handleRejectEvidence(showEvidenceModal.id,confirm)
+                            );
+                            setConfirmModal({ open: true, type: "reject" });
+                          }}
                           className="flex items-center justify-center px-4 py-2 border border-red-500 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 w-full sm:w-auto text-sm sm:text-base"
                         >
                           <XCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                           Rechazar
                         </button>
+                        
                         <button
-                          onClick={() => handleApproveEvidence(
-                            showEvidenceModal.id,
-                            showEvidenceModal.evidences?.[0]?.id,
-                            showEvidenceModal._adminHours
-                          )}
+                          onClick={() => {
+                            setShowEvidenceModal(false);
+                            setPendingAction(() => (confirm) =>
+                              handleApproveEvidence(
+                                showEvidenceModal.id,
+                                showEvidenceModal.evidences?.[0]?.id,
+                                showEvidenceModal._adminHours,
+                                confirm
+                              )
+                            );
+                            setConfirmModal({ open: true, type: "approve" });
+                          }}
                           className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 w-full sm:w-auto text-sm sm:text-base"
                         >
                           <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
                           Aprobar
                         </button>
+                        
                       </div>
                     )}
                   </div>
@@ -945,6 +965,16 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks, handleChangeLimit
           </div>
         )}
 
+        <ConfirmEvidenceModal
+          open={confirmModal.open}
+          type={confirmModal.type}
+          onClose={() => setConfirmModal({ ...confirmModal, open: false })}
+          onConfirm={(description) => {
+            setShowEvidenceModal(false);
+            pendingAction(description);
+            setConfirmModal({ ...confirmModal, open: false });
+          }}
+        />
         {/* Import Preview Modal */}
         {importPreview && (
           <div 
@@ -1084,11 +1114,13 @@ const TasksManager = ({ students, onTaskUpdate, areaId, tasks, handleChangeLimit
         )}
       </div>
     </>
+    
   );
 };
 
 // Componente del formulario de tareas
 const TaskForm = ({ students, onSubmit, onClose, areaId, initialData }) => {
+  console.log(initialData)
   const [formData, setFormData] = useState(() => initialData ? {
     title: initialData.title || '',
     description: initialData.description || '',
@@ -1097,6 +1129,7 @@ const TaskForm = ({ students, onSubmit, onClose, areaId, initialData }) => {
     student_ids: initialData.student_id ? [initialData.student_id] : [],
     workspace_id: initialData.workspace_id || '',
     status: initialData.status || 'pending',
+    comments_evidence: initialData.comments_evidence,
   } : {
     title: '',
     description: '',
@@ -1176,6 +1209,20 @@ const TaskForm = ({ students, onSubmit, onClose, areaId, initialData }) => {
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
+          {initialData.comments_evidence && (
+            <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Descripción de Evidencia
+            </label>
+            <textarea
+              required
+              className="w-full border rounded-lg px-3 py-2 text-sm sm:text-base bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+              rows="4"
+              value={formData.comments_evidence}
+              onChange={(e) => setFormData({ ...formData, comments_evidence: e.target.value })}
+            />
+          </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
