@@ -10,13 +10,15 @@ import {
   ChevronDown, 
   LogOut, 
   User,
-  Briefcase
+  Briefcase,
+  FileText
 } from 'lucide-react';
 import TasksManager from './TasksManager';
 import Statistics from './Statistics';
 import StudentSchedule from './StudentSchedule';
 import ThemeToggle from './ThemeToggle';
 import WorkspacesManager from './WorkspacesManager';
+import AreaChangeRequestModal from './AreaChangeRequestModal';
 import dayjs from 'dayjs';
 import { Select } from '@headlessui/react';
 
@@ -370,6 +372,8 @@ const AdminDashboard = () => {
         );
       case 'workspaces':
         return <WorkspacesManager areaId={userData?.internship_area} />;
+      case 'requests':
+        return <RequestsManager students={students} areas={areas} adminId={userData?.id} />;
       default:
         return null;
     }
@@ -496,6 +500,18 @@ const AdminDashboard = () => {
             >
               <Briefcase className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
               <span className="text-lg sm:text-base">Espacios de Trabajo</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('requests');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
+                activeTab === 'requests' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+              }`}
+            >
+              <FileText className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
+              <span className="text-lg sm:text-base">Solicitudes</span>
             </button>
           </div>
         </nav>
@@ -681,6 +697,60 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas, ha
           );
         })}
       </div>
+    </div>
+  );
+};
+
+const RequestsManager = ({ students, areas, adminId }) => {
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [showModal, setShowModal] = useState(false);
+
+  const handleCreateRequest = () => {
+    if (selectedStudent) {
+      setShowModal(true);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold text-indigo-800">Crear Solicitud de Cambio de Área</h2>
+      <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Seleccionar Estudiante</label>
+            <select
+              value={selectedStudent}
+              onChange={e => setSelectedStudent(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 bg-white text-gray-900 border-gray-300"
+            >
+              <option value="">Selecciona un estudiante</option>
+              {students.map(student => (
+                <option key={student.id} value={student.id}>{student.full_name}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={handleCreateRequest}
+            disabled={!selectedStudent}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
+          >
+            Crear Solicitud
+          </button>
+        </div>
+      </div>
+      {showModal && (
+        <AreaChangeRequestModal
+          currentAreaId={students.find(s => s.id === selectedStudent)?.internship_area}
+          areas={areas}
+          studentId={selectedStudent}
+          adminId={adminId}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 };

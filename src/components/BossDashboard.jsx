@@ -233,12 +233,12 @@ const BossDashboard = () => {
     }
   };
 
-  const handleApproveRequest = async (request, areaId) => {
+  const handleApproveRequest = async (request) => {
     try {
       // Update user's area
       await supabase
         .from('users')
-        .update({ internship_area: areaId })
+        .update({ internship_area: request.requested_area })
         .eq('id', request.student_id);
       // Update request status
       await supabase
@@ -1163,35 +1163,23 @@ const RequestsList = ({ requests, areas, students, onApprove, onReject }) => {
                 Estudiante: {students.find(s => s.id === req.student_id)?.full_name || req.student_id}
               </div>
               <div className="text-sm text-gray-700">Área actual: {areas.find(a => a.id === req.current_area)?.name || req.current_area}</div>
+              <div className="text-sm text-gray-700">Área solicitada: {areas.find(a => a.id === req.requested_area)?.name || req.requested_area}</div>
               <div className="text-sm text-gray-700">Razón: {req.reason}</div>
               <div className="text-xs text-gray-400">Fecha: {req.created_at ? req.created_at.split('T')[0] : ''}</div>
               {req.status === 'pending' && (
-                <div className="flex flex-col gap-2 mt-2">
-                  <select
-                    className="border rounded-lg px-3 py-2 text-sm"
-                    value={selectedAreaIds[req.id] || ''}
-                    onChange={e => setSelectedAreaIds(prev => ({ ...prev, [req.id]: e.target.value }))}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => onApprove(req)}
+                    className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                   >
-                    <option value="">Selecciona nueva área</option>
-                    {areas.map(area => (
-                      <option key={area.id} value={area.id}>{area.name}</option>
-                    ))}
-                  </select>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => onApprove(req, selectedAreaIds[req.id])}
-                      disabled={!selectedAreaIds[req.id]}
-                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />Aprobar
-                    </button>
-                    <button
-                      onClick={() => onReject(req)}
-                      className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />Rechazar
-                    </button>
-                  </div>
+                    <CheckCircle className="w-4 h-4 mr-2" />Aprobar
+                  </button>
+                  <button
+                    onClick={() => onReject(req)}
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />Rechazar
+                  </button>
                 </div>
               )}
               {req.status !== 'pending' && (

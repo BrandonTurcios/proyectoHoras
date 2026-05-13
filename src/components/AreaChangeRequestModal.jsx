@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
-const AreaChangeRequestModal = ({ currentAreaId, areas, studentId, onClose }) => {
+const AreaChangeRequestModal = ({ currentAreaId, areas, studentId, adminId, onClose }) => {
   const [reason, setReason] = useState('');
+  const [requestedAreaId, setRequestedAreaId] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -13,7 +14,9 @@ const AreaChangeRequestModal = ({ currentAreaId, areas, studentId, onClose }) =>
     setLoading(true);
     await supabase.from('area_change_requests').insert([{
       student_id: studentId,
+      admin_id: adminId,
       current_area: currentAreaId,
+      requested_area: requestedAreaId,
       reason,
       status: 'pending'
     }]);
@@ -54,14 +57,18 @@ const AreaChangeRequestModal = ({ currentAreaId, areas, studentId, onClose }) =>
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Razón</label>
-              <textarea
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva área solicitada</label>
+              <select
                 required
+                value={requestedAreaId}
+                onChange={e => setRequestedAreaId(e.target.value)}
                 className="w-full border rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
-                value={reason}
-                onChange={e => setReason(e.target.value)}
-                rows={3}
-              />
+              >
+                <option value="">Selecciona nueva área</option>
+                {areas.filter(a => a.id !== currentAreaId).map(area => (
+                  <option key={area.id} value={area.id}>{area.name}</option>
+                ))}
+              </select>
             </div>
             <div className="flex flex-col sm:flex-row justify-end gap-2">
               <button

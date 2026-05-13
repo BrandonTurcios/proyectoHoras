@@ -7,7 +7,8 @@
     "dev": "vite --host",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "change":"node changePassword.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.2",
