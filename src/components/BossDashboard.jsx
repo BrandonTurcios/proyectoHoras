@@ -1479,6 +1479,24 @@ const StudentsList = ({ fetchData,students, areas }) => {
   const [sortBy, setSortBy] = useState('name');
   const [compactView, setCompactView] = useState(false);
   const [changeArea,setChangeArea] = useState(null);
+  const [studentToDelete, setStudentToDelete] = useState(null);
+
+  const handleDeleteStudent = async () => {
+    if (!studentToDelete) return;
+    try {
+      await Promise.all([
+        supabase.from('evidences').delete().eq('student_id', studentToDelete.id),
+        supabase.from('student_availability').delete().eq('student_id', studentToDelete.id),
+        supabase.from('tasks').delete().eq('student_id', studentToDelete.id),
+        supabase.from('area_change_requests').delete().eq('student_id', studentToDelete.id),
+      ]);
+      await supabase.from('users').delete().eq('id', studentToDelete.id);
+      setStudentToDelete(null);
+      fetchData();
+    } catch (error) {
+      console.error("Error eliminando estudiante:", error);
+    }
+  };
 
   const filteredStudents = students
     .filter(student => 
@@ -1571,12 +1589,13 @@ const StudentsList = ({ fetchData,students, areas }) => {
                     <td className='px-3 py-2 items-center overflow-visible'>
                       <Dropdown 
                         items={[
-                          { label: 'Cambiar de Área',  action: () => {setChangeArea(student.id)} }
+                          { label: 'Cambiar de Área',  action: () => {setChangeArea(student.id)} },
+                          { label: 'Eliminar',  action: () => {setStudentToDelete(student)} }
                         ]}
                       />
                     </td>
                     <td className="px-3 py-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                      <span className={`inline-block whitespace-nowrap px-2 py-1 rounded-full text-xs font-semibold ${
                         isCompleted ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200'
                       }`}>
                         {isCompleted ? 'Completado' : 'En progreso'}
@@ -1604,7 +1623,8 @@ const StudentsList = ({ fetchData,students, areas }) => {
                   <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
                   <Dropdown items={
                     [
-                      { label: 'Cambiar de Área',  action: () => {setChangeArea(student.id)} }
+                      { label: 'Cambiar de Área',  action: () => {setChangeArea(student.id)} },
+                      { label: 'Eliminar',  action: () => {setStudentToDelete(student)} }
                     ]
                   }/>
                 </div>
@@ -1636,6 +1656,32 @@ const StudentsList = ({ fetchData,students, areas }) => {
         </div>
       )}
       <ModalChangeArea onUpdate={() => {fetchData()}}userId={changeArea} isOpen={changeArea} onClose={() => setChangeArea(false)}/>  
+
+      {studentToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-red-700 dark:text-red-300 mb-4">Eliminar Estudiante</h3>
+            <p className="mb-4 text-gray-700 dark:text-gray-200">
+              ¿Estás seguro de que deseas eliminar a <span className="font-bold">{studentToDelete.full_name}</span>?
+              Esta acción no se puede deshacer y eliminará también todas sus tareas, evidencias y disponibilidad.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setStudentToDelete(null)}
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteStudent}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
