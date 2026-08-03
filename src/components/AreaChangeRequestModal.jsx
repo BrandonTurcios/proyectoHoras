@@ -26,7 +26,7 @@ const AreaChangeRequestModal = ({ currentAreaId, areas, studentId, adminId, onCl
 
   const handleClose = () => {
     setSuccess(false);
-    onClose();
+    onClose(true);
   };
 
   return (

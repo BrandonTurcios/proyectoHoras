@@ -1,42 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
-import { 
-  Users, 
-  ClipboardList, 
-  BarChart2, 
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
+import {
+  Users,
+  ClipboardList,
+  BarChart2,
   Calendar,
   Search,
-  ChevronDown, 
-  LogOut, 
+  ChevronDown,
+  LogOut,
   User,
   Briefcase,
-  FileText
-} from 'lucide-react';
-import TasksManager from './TasksManager';
-import Statistics from './Statistics';
-import StudentSchedule from './StudentSchedule';
-import ThemeToggle from './ThemeToggle';
-import WorkspacesManager from './WorkspacesManager';
-import AreaChangeRequestModal from './AreaChangeRequestModal';
-import dayjs from 'dayjs';
-import { Select } from '@headlessui/react';
+  FileText,
+} from "lucide-react";
+import TasksManager from "./TasksManager";
+import Statistics from "./Statistics";
+import StudentSchedule from "./StudentSchedule";
+import ThemeToggle from "./ThemeToggle";
+import WorkspacesManager from "./WorkspacesManager";
+import AreaChangeRequestModal from "./AreaChangeRequestModal";
+import dayjs from "dayjs";
+import { Select } from "@headlessui/react";
 
 // Paleta de colores para estudiantes
 const studentColors = [
-  '#6366f1', // Indigo
-  '#f59e42', // Orange
-  '#10b981', // Green
-  '#f43f5e', // Red
-  '#3b82f6', // Blue
-  '#eab308', // Yellow
-  '#14b8a6', // Teal
-  '#f472b6', // Pink
-  '#a3e635', // Lime
+  "#6366f1", // Indigo
+  "#f59e42", // Orange
+  "#10b981", // Green
+  "#f43f5e", // Red
+  "#3b82f6", // Blue
+  "#eab308", // Yellow
+  "#14b8a6", // Teal
+  "#f472b6", // Pink
+  "#a3e635", // Lime
   //agregar mas colores
-  '#DE3163',
-  '#DFFF00'
-
+  "#DE3163",
+  "#DFFF00",
 ];
 
 // Asigna un color a cada estudiante por nombre
@@ -56,7 +55,7 @@ const CombinedSchedule = ({ students }) => {
   // Function to convert "HH:mm" or "HH:mm:ss" string to total minutes from midnight
   const timeToMinutes = (timeStr) => {
     console.log(`timeToMinutes input: ${timeStr}`); // Debug log
-    const parts = timeStr.split(':').map(Number);
+    const parts = timeStr.split(":").map(Number);
     const minutes = parts[0] * 60 + parts[1];
     console.log(`timeToMinutes output for ${timeStr}: ${minutes}`); // Debug log
     return minutes;
@@ -64,14 +63,19 @@ const CombinedSchedule = ({ students }) => {
 
   // Solo días de lunes a sábado
   const daysOfWeek = [
-    'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
   ];
 
   // Generar bloques de 1 hora desde 06:00 a 21:00
   const hourBlocks = [];
   for (let h = 6; h < 21; h++) {
-    const start = `${h.toString().padStart(2, '0')}:00`;
-    const end = `${(h + 1).toString().padStart(2, '0')}:00`;
+    const start = `${h.toString().padStart(2, "0")}:00`;
+    const end = `${(h + 1).toString().padStart(2, "0")}:00`;
     hourBlocks.push({ start, end });
   }
 
@@ -82,29 +86,31 @@ const CombinedSchedule = ({ students }) => {
   const fetchCombinedSchedule = async () => {
     try {
       setLoading(true);
-      const studentIds = students.map(student => student.id);
+      const studentIds = students.map((student) => student.id);
       const { data, error } = await supabase
-        .from('student_availability')
-        .select(`*, student:users!student_availability_student_id_fkey(full_name)`)
-        .in('student_id', studentIds);
+        .from("student_availability")
+        .select(
+          `*, student:users!student_availability_student_id_fkey(full_name)`,
+        )
+        .in("student_id", studentIds);
       if (error) throw error;
       // Organizar los horarios por día
       const scheduleByDay = {};
-      daysOfWeek.forEach(day => {
+      daysOfWeek.forEach((day) => {
         scheduleByDay[day] = [];
       });
-      data.forEach(slot => {
+      data.forEach((slot) => {
         if (scheduleByDay[slot.day_of_week]) {
           scheduleByDay[slot.day_of_week].push({
             ...slot,
-            studentName: slot.student.full_name
+            studentName: slot.student.full_name,
           });
         }
       });
       setCombinedSchedule(scheduleByDay);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching combined schedule:', error);
+      console.error("Error fetching combined schedule:", error);
       setLoading(false);
     }
   };
@@ -123,9 +129,16 @@ const CombinedSchedule = ({ students }) => {
         <table className="table-fixed w-full min-w-[600px] border-separate border-spacing-0 rounded-xl overflow-hidden">
           <thead>
             <tr>
-              <th className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center text-lg font-bold border-b-2 border-r-2 border-indigo-300">Hora</th>
-              {daysOfWeek.map(day => (
-                <th key={day} className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center font-bold border-b-2 border-r-2 border-indigo-300 last:border-r-0">{day}</th>
+              <th className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center text-lg font-bold border-b-2 border-r-2 border-indigo-300">
+                Hora
+              </th>
+              {daysOfWeek.map((day) => (
+                <th
+                  key={day}
+                  className="bg-indigo-100 text-indigo-800 px-2 py-2 text-center font-bold border-b-2 border-r-2 border-indigo-300 last:border-r-0"
+                >
+                  {day}
+                </th>
               ))}
             </tr>
           </thead>
@@ -136,9 +149,11 @@ const CombinedSchedule = ({ students }) => {
                   {start} - {end}
                 </td>
                 {daysOfWeek.map((day, colIdx) => {
-                  const slotsArr = Array.isArray(combinedSchedule[day]) ? combinedSchedule[day] : [];
+                  const slotsArr = Array.isArray(combinedSchedule[day])
+                    ? combinedSchedule[day]
+                    : [];
                   // Estudiantes presentes durante TODO el bloque (no solo solapados)
-                  const slots = slotsArr.filter(slot => {
+                  const slots = slotsArr.filter((slot) => {
                     // Convert all times to minutes for robust comparison
                     const slotMinutesStart = timeToMinutes(slot.start_time);
                     const slotMinutesEnd = timeToMinutes(slot.end_time);
@@ -155,10 +170,16 @@ const CombinedSchedule = ({ students }) => {
 
                     // Check for overlap: [slot.start_time, slot.end_time] overlaps with [block.start, block.end]
                     // An overlap exists if slot_start < block_end AND slot_end > block_start
-                    return slotMinutesStart < blockMinutesEnd && slotMinutesEnd > blockMinutesStart;
+                    return (
+                      slotMinutesStart < blockMinutesEnd &&
+                      slotMinutesEnd > blockMinutesStart
+                    );
                   });
                   return (
-                    <td key={day} className={`px-0 py-3 align-top border-b-2 border-r-2 border-indigo-100 last:border-r-0 text-xs leading-tight whitespace-nowrap ${rowIdx === hourBlocks.length - 1 ? '' : ''}`}>
+                    <td
+                      key={day}
+                      className={`px-0 py-3 align-top border-b-2 border-r-2 border-indigo-100 last:border-r-0 text-xs leading-tight whitespace-nowrap ${rowIdx === hourBlocks.length - 1 ? "" : ""}`}
+                    >
                       {slots.length === 0 ? (
                         <span className="text-gray-300 text-xs">-</span>
                       ) : (
@@ -191,7 +212,7 @@ const CombinedSchedule = ({ students }) => {
 };
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('students');
+  const [activeTab, setActiveTab] = useState("students");
   const [students, setStudents] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [areas, setAreas] = useState([]);
@@ -211,7 +232,7 @@ const AdminDashboard = () => {
       await Promise.all([fetchStudents(), fetchTasks(), fetchAreas()]);
       setLoading(false);
     };
-   
+
     if (userData?.internship_area) {
       fetchData();
     }
@@ -219,13 +240,14 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 640) { // sm breakpoint
+      if (window.innerWidth >= 640) {
+        // sm breakpoint
         setIsSidebarOpen(false);
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -239,10 +261,11 @@ const AdminDashboard = () => {
   const fetchStudents = async () => {
     try {
       const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'student')
-        .eq('internship_area', userData.internship_area).limit(limit);
+        .from("users")
+        .select("*")
+        .eq("role", "student")
+        .eq("internship_area", userData.internship_area)
+        .limit(limit);
 
       if (error) throw error;
       if (data) setStudents(data);
@@ -254,15 +277,19 @@ const AdminDashboard = () => {
   const fetchTasks = async () => {
     try {
       const { data, error } = await supabase
-        .from('tasks')
-        .select(`
+        .from("tasks")
+        .select(
+          `
           *,
           admin:users!tasks_admin_id_fkey(full_name),
           student:users!tasks_student_id_fkey(full_name),
           evidences(*)
-        `)
-        .eq('admin_id', userData.id).limit(limitTasks).order('created_at', { ascending: false });
-        console.log(data);
+        `,
+        )
+        .eq("admin_id", userData.id)
+        .limit(limitTasks)
+        .order("created_at", { ascending: false });
+      console.log(data);
       if (error) throw error;
       if (data) setTasks(data);
     } catch (error) {
@@ -272,9 +299,7 @@ const AdminDashboard = () => {
 
   const fetchAreas = async () => {
     try {
-      const { data, error } = await supabase
-        .from('areas')
-        .select('*');
+      const { data, error } = await supabase.from("areas").select("*");
       if (error) throw error;
       if (data) setAreas(data);
     } catch (error) {
@@ -289,54 +314,71 @@ const AdminDashboard = () => {
       await signOut();
       // No necesitamos hacer nada más aquí
     } catch (error) {
-      console.error('Error durante logout:', error);
+      console.error("Error durante logout:", error);
       // Mostrar mensaje de error al usuario si es necesario
     } finally {
       setLogoutLoading(false);
     }
   };
 
-  const handleChangeLimit = async(newLimit) => {
+  const handleChangeLimit = async (newLimit) => {
     setLimit(newLimit);
   };
 
-  const handleChangeLimitTask = async(newLimit) => {
+  const handleChangeLimitTask = async (newLimit) => {
     setLimitTasks(newLimit);
   };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'students':
-        return <StudentsList students={students} areas={areas} handleChangeLimit={handleChangeLimit}/>;
-       
-      case 'tasks':
-        return <TasksManager tasks={tasks} students={students} handleChangeLimit={handleChangeLimitTask} onTaskUpdate={fetchTasks} areas={areas} areaId={userData?.internship_area} />;
-        
-      case 'statistics':
+      case "students":
+        return (
+          <StudentsList
+            students={students}
+            areas={areas}
+            handleChangeLimit={handleChangeLimit}
+          />
+        );
+
+      case "tasks":
+        return (
+          <TasksManager
+            tasks={tasks}
+            students={students}
+            handleChangeLimit={handleChangeLimitTask}
+            onTaskUpdate={fetchTasks}
+            areas={areas}
+            areaId={userData?.internship_area}
+          />
+        );
+
+      case "statistics":
         return <Statistics students={students} tasks={tasks} areas={areas} />;
-        
-      case 'schedule':
+
+      case "schedule":
         return (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <h2 className="text-xl font-semibold text-indigo-800">Gestión de Horarios</h2>
+              <h2 className="text-xl font-semibold text-indigo-800">
+                Gestión de Horarios
+              </h2>
               <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 <button
                   onClick={() => setSelectedStudentId(null)}
                   className={`px-4 py-2 rounded-lg w-full sm:w-auto ${
                     selectedStudentId === null
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   Vista Combinada
                 </button>
                 <button
-                  onClick={() => setSelectedStudentId('individual')}
+                  onClick={() => setSelectedStudentId("individual")}
                   className={`px-4 py-2 rounded-lg w-full sm:w-auto ${
-                    selectedStudentId === 'individual'
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    selectedStudentId === "individual"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   Horarios Individuales
@@ -346,7 +388,7 @@ const AdminDashboard = () => {
 
             {selectedStudentId === null ? (
               <CombinedSchedule students={students} />
-            ) : selectedStudentId === 'individual' ? (
+            ) : selectedStudentId === "individual" ? (
               <StudentsList
                 students={students}
                 onSelectStudent={(id) => setSelectedStudentId(id)}
@@ -357,7 +399,7 @@ const AdminDashboard = () => {
             ) : (
               <div>
                 <button
-                  onClick={() => setSelectedStudentId('individual')}
+                  onClick={() => setSelectedStudentId("individual")}
                   className="mb-4 text-indigo-600 hover:underline"
                 >
                   ← Volver a la lista de estudiantes
@@ -370,15 +412,20 @@ const AdminDashboard = () => {
             )}
           </div>
         );
-      case 'workspaces':
+      case "workspaces":
         return <WorkspacesManager areaId={userData?.internship_area} />;
-      case 'requests':
-        return <RequestsManager students={students} areas={areas} adminId={userData?.id} />;
+      case "requests":
+        return (
+          <RequestsManager
+            students={students}
+            areas={areas}
+            adminId={userData?.id}
+          />
+        );
       default:
         return null;
     }
   };
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-white to-indigo-200 dark:from-gray-900 dark:via-gray-950 dark:to-gray-900">
@@ -413,9 +460,11 @@ const AdminDashboard = () => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed w-64 h-full bg-white/90 dark:bg-gray-900/95 shadow-2xl flex flex-col transition-all duration-300 z-[60] rounded-r-3xl border-r border-indigo-100 dark:border-gray-800 ${
-        isSidebarOpen ? 'left-0' : '-left-64 sm:left-0'
-      }`}>
+      <div
+        className={`fixed w-64 h-full bg-white/90 dark:bg-gray-900/95 shadow-2xl flex flex-col transition-all duration-300 z-[60] rounded-r-3xl border-r border-indigo-100 dark:border-gray-800 ${
+          isSidebarOpen ? "left-0" : "-left-64 sm:left-0"
+        }`}
+      >
         {/* Botón cerrar sidebar en móvil, cuadrado */}
         {isSidebarOpen && (
           <button
@@ -424,30 +473,46 @@ const AdminDashboard = () => {
             aria-label="Cerrar menú"
             type="button"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
         <div className="p-2 sm:p-6">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm">Panel de Control</h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-700 dark:text-indigo-300 drop-shadow-sm">
+            Panel de Control
+          </h2>
           <p className="text-xs sm:text-sm text-indigo-500 dark:text-indigo-400">
             {(() => {
-              const areaName = areas && areas.find(a => a.id === userData?.internship_area)?.name;
-              return areaName || userData?.internship_area || 'Sin área';
+              const areaName =
+                areas &&
+                areas.find((a) => a.id === userData?.internship_area)?.name;
+              return areaName || userData?.internship_area || "Sin área";
             })()}
           </p>
         </div>
-        
+
         <nav className="mt-4 sm:mt-6 flex-1 flex flex-col justify-between">
           <div className="space-y-2 sm:space-y-0">
             <button
               onClick={() => {
-                setActiveTab('students');
+                setActiveTab("students");
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-                activeTab === 'students' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+                activeTab === "students"
+                  ? "bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400"
+                  : ""
               }`}
             >
               <Users className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
@@ -455,11 +520,13 @@ const AdminDashboard = () => {
             </button>
             <button
               onClick={() => {
-                setActiveTab('tasks');
+                setActiveTab("tasks");
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-                activeTab === 'tasks' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+                activeTab === "tasks"
+                  ? "bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400"
+                  : ""
               }`}
             >
               <ClipboardList className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
@@ -467,11 +534,13 @@ const AdminDashboard = () => {
             </button>
             <button
               onClick={() => {
-                setActiveTab('statistics');
+                setActiveTab("statistics");
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-                activeTab === 'statistics' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+                activeTab === "statistics"
+                  ? "bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400"
+                  : ""
               }`}
             >
               <BarChart2 className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
@@ -479,11 +548,13 @@ const AdminDashboard = () => {
             </button>
             <button
               onClick={() => {
-                setActiveTab('schedule');
+                setActiveTab("schedule");
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-                activeTab === 'schedule' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+                activeTab === "schedule"
+                  ? "bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400"
+                  : ""
               }`}
             >
               <Calendar className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
@@ -491,11 +562,13 @@ const AdminDashboard = () => {
             </button>
             <button
               onClick={() => {
-                setActiveTab('workspaces');
+                setActiveTab("workspaces");
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-                activeTab === 'workspaces' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+                activeTab === "workspaces"
+                  ? "bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400"
+                  : ""
               }`}
             >
               <Briefcase className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
@@ -503,11 +576,13 @@ const AdminDashboard = () => {
             </button>
             <button
               onClick={() => {
-                setActiveTab('requests');
+                setActiveTab("requests");
                 setIsSidebarOpen(false);
               }}
               className={`w-full flex items-center py-6 sm:py-4 px-4 text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 ${
-                activeTab === 'requests' ? 'bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : ''
+                activeTab === "requests"
+                  ? "bg-indigo-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400"
+                  : ""
               }`}
             >
               <FileText className="w-7 h-7 sm:w-5 sm:h-5 mr-4 sm:mr-3" />
@@ -516,65 +591,89 @@ const AdminDashboard = () => {
           </div>
         </nav>
 
-{/* Menú de usuario y ThemeToggle al fondo */}
-<div className="mt-auto p-2 sm:p-4 border-t border-indigo-100 dark:border-gray-800 flex flex-col gap-4">
-  <div className="flex items-center gap-2">
-    <ThemeToggle />
-    <div className="relative flex-1 min-w-0"> {/* Cambiado a flex-1 y min-w-0 */}
-      <button
-        onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-        className="w-full flex items-center justify-between p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors overflow-hidden" 
-      >
-        <div className="flex items-center min-w-0"> {/* Añadido min-w-0 */}
-          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0">
-            <User className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <div className="text-left ml-3 min-w-0"> {/* Añadido min-w-0 */}
-            <p className="text-xs sm:text-sm font-medium truncate text-gray-900 dark:text-gray-100">
-              {userData?.full_name || 'Administrador'}
-            </p>
-            <p className="text-xs truncate text-gray-500 dark:text-gray-400">
-              {userData?.email || ''}
-            </p>
+        {/* Menú de usuario y ThemeToggle al fondo */}
+        <div className="mt-auto p-2 sm:p-4 border-t border-indigo-100 dark:border-gray-800 flex flex-col gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <div className="relative flex-1 min-w-0">
+              {" "}
+              {/* Cambiado a flex-1 y min-w-0 */}
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="w-full flex items-center justify-between p-2 sm:p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors overflow-hidden"
+              >
+                <div className="flex items-center min-w-0">
+                  {" "}
+                  {/* Añadido min-w-0 */}
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0">
+                    <User className="w-3 h-3 sm:w-4 sm:h-4 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <div className="text-left ml-3 min-w-0">
+                    {" "}
+                    {/* Añadido min-w-0 */}
+                    <p className="text-xs sm:text-sm font-medium truncate text-gray-900 dark:text-gray-100">
+                      {userData?.full_name || "Administrador"}
+                    </p>
+                    <p className="text-xs truncate text-gray-500 dark:text-gray-400">
+                      {userData?.email || ""}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform flex-shrink-0 ${isUserMenuOpen ? "transform rotate-180" : ""} text-gray-500 dark:text-gray-400`}
+                />
+              </button>
+              {isUserMenuOpen && (
+                <div
+                  className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={handleSignOut}
+                    disabled={logoutLoading}
+                    className={`w-full flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm ${
+                      logoutLoading
+                        ? "text-gray-400"
+                        : "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    }`}
+                  >
+                    {logoutLoading ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-3 w-3 sm:h-4 sm:w-4 text-gray-600 dark:text-gray-400"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Cerrando sesión...
+                      </>
+                    ) : (
+                      <>
+                        <LogOut className="w-3 h-3 sm:w-4 sm:w-4 mr-2" />
+                        Cerrar sesión
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        <ChevronDown 
-          className={`w-4 h-4 transition-transform flex-shrink-0 ${isUserMenuOpen ? 'transform rotate-180' : ''} text-gray-500 dark:text-gray-400`} 
-        />
-      </button>
-      {isUserMenuOpen && (
-        <div 
-          className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={handleSignOut}
-            disabled={logoutLoading}
-            className={`w-full flex items-center px-3 sm:px-4 py-2 text-xs sm:text-sm ${
-              logoutLoading ? 'text-gray-400' : 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
-            }`}
-          >
-            {logoutLoading ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-3 w-3 sm:h-4 sm:w-4 text-gray-600 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Cerrando sesión...
-              </>
-            ) : (
-              <>
-                <LogOut className="w-3 h-3 sm:w-4 sm:w-4 mr-2" />
-                Cerrar sesión
-              </>
-            )}
-          </button>
-        </div>
-      )}
-    </div>
-  </div>
-</div>
-</div>
+      </div>
 
       {/* Main Content */}
       <div className="ml-0 sm:ml-64 p-4 sm:p-8 md:p-12 transition-all duration-300">
@@ -601,24 +700,33 @@ const AdminDashboard = () => {
 };
 
 // Componente de lista de estudiantes
-const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas, handleChangeLimit }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('name');
+const StudentsList = ({
+  students,
+  onSelectStudent,
+  showScheduleOption,
+  areas,
+  handleChangeLimit,
+}) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name");
 
   const filteredStudents = students
-    .filter(student => 
-      student.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .filter((student) =>
+      student.full_name.toLowerCase().includes(searchTerm.toLowerCase()),
+    )
     .sort((a, b) => {
-      if (sortBy === 'name') {
+      if (sortBy === "name") {
         return a.full_name.localeCompare(b.full_name);
-      } else if (sortBy === 'hours') {
+      } else if (sortBy === "hours") {
         return b.current_hours - a.current_hours;
       }
       return 0;
     });
 
   if (!filteredStudents.length) {
-    return <div className="text-gray-500">No hay estudiantes para mostrar.</div>;
+    return (
+      <div className="text-gray-500">No hay estudiantes para mostrar.</div>
+    );
   }
 
   return (
@@ -628,7 +736,7 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas, ha
         className="font-semibold text-indigo-800 whitespace-nowrap"
       >
         Límite:
-      </label>  
+      </label>
       <div className="flex w-full items-center gap-3 py-2 mb-5">
         <select
           id="limit"
@@ -649,29 +757,50 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas, ha
           defaultValue={10}
           onChange={(e) => handleChangeLimit(Number(e.target.value))}
         >
-          <option className="bg-indigo-50 text-indigo-900" value={10}>10</option>
-          <option className="bg-indigo-50 text-indigo-900" value={25}>25</option>
-          <option className="bg-indigo-50 text-indigo-900" value={50}>50</option>
-          <option className="bg-indigo-50 text-indigo-900" value={100}>100</option>
+          <option className="bg-indigo-50 text-indigo-900" value={10}>
+            10
+          </option>
+          <option className="bg-indigo-50 text-indigo-900" value={25}>
+            25
+          </option>
+          <option className="bg-indigo-50 text-indigo-900" value={50}>
+            50
+          </option>
+          <option className="bg-indigo-50 text-indigo-900" value={100}>
+            100
+          </option>
         </select>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredStudents.map(student => {
-          const areaName = areas && areas.find(a => a.id === student.internship_area)?.name;
+        {filteredStudents.map((student) => {
+          const areaName =
+            areas && areas.find((a) => a.id === student.internship_area)?.name;
           const isCompleted = student.current_hours >= student.hours_required;
-          const progress = (student.current_hours / student.hours_required) * 100;
-          const progressColor = isCompleted ? 'bg-green-500' : 'bg-indigo-400';
+          const progress =
+            (student.current_hours / student.hours_required) * 100;
+          const progressColor = isCompleted ? "bg-green-500" : "bg-indigo-400";
 
           return (
-            <div key={student.id} className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full">
-              <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">{student.full_name}</h3>
-              <p className="text-indigo-500 text-sm mb-2 truncate">{student.email}</p>
+            <div
+              key={student.id}
+              className="rounded-2xl p-4 sm:p-6 bg-gradient-to-br from-indigo-50 to-white shadow-md hover:shadow-xl transition-shadow border border-indigo-100 flex flex-col h-full"
+            >
+              <h3 className="font-bold text-lg text-indigo-800 mb-1 truncate">
+                {student.full_name}
+              </h3>
+              <p className="text-indigo-500 text-sm mb-2 truncate">
+                {student.email}
+              </p>
               <div className="mt-3 sm:mt-4">
                 <div className="flex justify-between mb-1">
-                  <span className={`text-xs sm:text-sm font-medium ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
-                    {isCompleted ? 'COMPLETADO' : 'Progreso de horas'}
+                  <span
+                    className={`text-xs sm:text-sm font-medium ${isCompleted ? "text-green-700" : "text-indigo-700"}`}
+                  >
+                    {isCompleted ? "COMPLETADO" : "Progreso de horas"}
                   </span>
-                  <span className={`text-xs sm:text-sm font-bold ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
+                  <span
+                    className={`text-xs sm:text-sm font-bold ${isCompleted ? "text-green-700" : "text-indigo-700"}`}
+                  >
                     {Math.round(progress)}%
                   </span>
                 </div>
@@ -681,8 +810,11 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas, ha
                     className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${progressColor}`}
                   ></div>
                 </div>
-                <div className={`mt-1 sm:mt-2 text-xs sm:text-sm ${isCompleted ? 'text-green-700' : 'text-indigo-700'}`}>
-                  {student.current_hours} de {student.hours_required} horas completadas
+                <div
+                  className={`mt-1 sm:mt-2 text-xs sm:text-sm ${isCompleted ? "text-green-700" : "text-indigo-700"}`}
+                >
+                  {student.current_hours} de {student.hours_required} horas
+                  completadas
                 </div>
               </div>
               {showScheduleOption && (
@@ -702,8 +834,40 @@ const StudentsList = ({ students, onSelectStudent, showScheduleOption, areas, ha
 };
 
 const RequestsManager = ({ students, areas, adminId }) => {
-  const [selectedStudent, setSelectedStudent] = useState('');
+  const [requests, setRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+  const [selectedStudent, setSelectedStudent] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [expandedReason, setExpandedReason] = useState(null);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [adminId]);
+
+  const fetchRequests = async () => {
+    try {
+      setLoadingRequests(true);
+      const { data, error } = await supabase
+        .from("area_change_requests")
+        .select(
+          `
+          *,
+          student:users!area_change_requests_student_id_fkey(full_name),
+          currentArea:areas!area_change_requests_current_area_fkey(name),
+          requestedArea:areas!area_change_requests_requested_area_fkey(name)
+        `,
+        )
+        .eq("admin_id", adminId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      if (data) setRequests(data);
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
 
   const handleCreateRequest = () => {
     if (selectedStudent) {
@@ -711,40 +875,157 @@ const RequestsManager = ({ students, areas, adminId }) => {
     }
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = (created) => {
     setShowModal(false);
+    if (created) fetchRequests();
+  };
+
+  const statusBadge = (status) => {
+    const styles = {
+      pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      approved: "bg-green-100 text-green-800 border-green-300",
+      rejected: "bg-red-100 text-red-800 border-red-300",
+    };
+    const labels = {
+      pending: "Pendiente",
+      approved: "Aprobada",
+      rejected: "Rechazada",
+    };
+    return (
+      <span
+        className={`px-2 py-1 text-xs rounded-full font-medium border ${styles[status] || styles.pending}`}
+      >
+        {labels[status] || status}
+      </span>
+    );
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-indigo-800">Crear Solicitud de Cambio de Área</h2>
-      <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Seleccionar Estudiante</label>
-            <select
-              value={selectedStudent}
-              onChange={e => setSelectedStudent(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 bg-white text-gray-900 border-gray-300"
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-xl font-semibold text-indigo-800 mb-4">
+          Nueva Solicitud de Cambio de Área
+        </h2>
+        <div className="bg-white rounded-xl p-6 shadow-md border border-indigo-100">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleccionar Estudiante
+              </label>
+              <select
+                value={selectedStudent}
+                onChange={(e) => setSelectedStudent(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 bg-white text-gray-900 border-gray-300"
+              >
+                <option value="">Selecciona un estudiante</option>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={handleCreateRequest}
+              disabled={!selectedStudent}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
             >
-              <option value="">Selecciona un estudiante</option>
-              {students.map(student => (
-                <option key={student.id} value={student.id}>{student.full_name}</option>
-              ))}
-            </select>
+              Crear Solicitud
+            </button>
           </div>
-          <button
-            onClick={handleCreateRequest}
-            disabled={!selectedStudent}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-400"
-          >
-            Crear Solicitud
-          </button>
         </div>
       </div>
+
+      <div>
+        <h2 className="text-xl font-semibold text-indigo-800 mb-4">
+          Mis Solicitudes
+        </h2>
+        {loadingRequests ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="bg-white rounded-xl p-8 shadow-md border border-indigo-100 text-center text-gray-500">
+            No has creado ninguna solicitud de cambio de área.
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-md border border-indigo-100 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-indigo-50 text-left text-sm font-semibold text-indigo-800">
+                    <th className="px-4 py-3">Estudiante</th>
+                    <th className="px-4 py-3">De → A</th>
+                    <th className="px-4 py-3">Estado</th>
+                    <th className="px-4 py-3">Motivo</th>
+                    <th className="px-4 py-3">Fecha</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {requests.map((req) => (
+                    <tr key={req.id} className="hover:bg-gray-50 text-sm">
+                      <td className="px-4 py-3 font-medium text-gray-800">
+                        {req.student?.full_name || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700 text-xs">
+                        <span className="text-gray-500">
+                          {req.currentArea?.name || "Sin área"}
+                        </span>
+                        <span className="mx-1.5 text-indigo-400">→</span>
+                        <span className="font-medium">
+                          {req.requestedArea?.name || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">{statusBadge(req.status)}</td>
+                      <td className="px-4 py-3 text-gray-600 max-w-[200px]">
+                        {req.reason ? (
+                          req.reason.length > 40 &&
+                          expandedReason !== req.id ? (
+                            <span>
+                              {req.reason.slice(0, 40)}...
+                              <button
+                                onClick={() => setExpandedReason(req.id)}
+                                className="text-indigo-600 hover:underline ml-1 text-xs"
+                              >
+                                más
+                              </button>
+                            </span>
+                          ) : (
+                            <span>
+                              {req.reason}
+                              {req.reason.length > 40 && (
+                                <button
+                                  onClick={() => setExpandedReason(null)}
+                                  className="text-indigo-600 hover:underline ml-1 text-xs"
+                                >
+                                  menos
+                                </button>
+                              )}
+                            </span>
+                          )
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
+                        {req.created_at
+                          ? dayjs(req.created_at).format("DD/MM/YYYY HH:mm")
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
       {showModal && (
         <AreaChangeRequestModal
-          currentAreaId={students.find(s => s.id === selectedStudent)?.internship_area}
+          currentAreaId={
+            students.find((s) => s.id === selectedStudent)?.internship_area
+          }
           areas={areas}
           studentId={selectedStudent}
           adminId={adminId}
